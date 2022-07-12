@@ -110,7 +110,8 @@ void MainWindow::on_pushButton_clicked()
             if (!listOfFactories)
                 qCritical() << "listOfFactories not found";
             QVector<QString> factories(listOfFactories->count());
-            for (int factoryItemIndex = 0; factoryItemIndex < listOfFactories->count(); ++factoryItemIndex) {
+            const int factoriesNum = listOfFactories->count();
+            for (int factoryItemIndex = 0; factoryItemIndex < factoriesNum; ++factoryItemIndex) {
                 factories[factoryItemIndex] = listOfFactories->item(factoryItemIndex)->text();
             }
 
@@ -118,7 +119,8 @@ void MainWindow::on_pushButton_clicked()
             if (!listOfFactories)
                 qCritical() << "listOfFactories not found";
             QVector<QString> products(listOfProducts->count());
-            for (int productItemIndex = 0; productItemIndex < listOfProducts->count(); ++productItemIndex) {
+            const int productsNum = listOfProducts->count();
+            for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
                 products[productItemIndex] = listOfProducts->item(productItemIndex)->text();
             }
 
@@ -131,7 +133,6 @@ void MainWindow::on_pushButton_clicked()
             QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
             if (!layoutProductsMethodsList)
                 qCritical() << "layoutProductsMethodsList not found";
-            const int productsNum = layoutProductsMethodsList->count();
             QVector<QVector<ClassMethod *>> productsMethods(productsNum);
 
             for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
@@ -204,11 +205,13 @@ void delWidgetsFromLayout(QLayout *layout) {
 }
 
 void clearRowColFromGridLayout(QGridLayout *layout) {
-    for (int row = 0; row < layout->rowCount(); ++row) {
+    const int rowCount = layout->rowCount();
+    for (int row = 0; row < rowCount; ++row) {
         layout->setRowMinimumHeight(row, 0);
         layout->setRowStretch(row, 0);
     }
-    for (int column = 0; column < layout->columnCount(); ++column) {
+    const int columnCount = layout->columnCount();
+    for (int column = 0; column < columnCount; ++column) {
         layout->setColumnMinimumWidth(column, 0);
         layout->setColumnStretch(column, 0);
     }
