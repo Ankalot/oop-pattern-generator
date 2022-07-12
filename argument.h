@@ -11,9 +11,9 @@ class Argument {
 public:
     Argument(bool isConst, QString type, QString name);
 
-    bool constFlag();
-    QString getType();
-    QString getName();
+    bool constFlag() const;
+    const QString &getType() const;
+    const QString &getName() const;
 
 private:
     bool isConst;

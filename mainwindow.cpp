@@ -4,6 +4,7 @@
 #include "classmethod.h"
 #include "argument.h"
 
+#include <cassert>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QDebug>
@@ -36,26 +37,36 @@ MainWindow::~MainWindow()
 }
 
 int getProductMethodArgsNum(QWidget *spinBoxNumArgsContent) {
+    if (!spinBoxNumArgsContent)
+        qCritical() << "spinBoxNumArgsContent not found";
     QLayout *layout = spinBoxNumArgsContent->layout();
     if (!layout)
         qCritical() << "spinBoxNumArgsContent layout not found";
     QHBoxLayout *spinBoxNumArgsLayout = qobject_cast<QHBoxLayout *>(layout);
     if (!spinBoxNumArgsLayout)
         qCritical() << "spinBoxNumArgsLayout not found";
-    QSpinBox *spinBoxNumArgs = qobject_cast<QSpinBox *>(spinBoxNumArgsLayout->itemAt(0)->widget());
+    QLayoutItem *spinBoxNumArgsItem = spinBoxNumArgsLayout->itemAt(0);
+    if (!spinBoxNumArgsItem)
+        qCritical() << "spinBoxNumArgs item not found";
+    QSpinBox *spinBoxNumArgs = qobject_cast<QSpinBox *>(spinBoxNumArgsItem->widget());
     if (!spinBoxNumArgsLayout)
         qCritical() << "spinBoxNumArgs not found";
     return spinBoxNumArgs->value();
 }
 
 bool checkCheckBoxConst(QWidget *checkBoxConstContent) {
+    if (!checkBoxConstContent)
+        qCritical() << "checkBoxConstContent not found";
     QLayout *layout = checkBoxConstContent->layout();
     if (!layout)
         qCritical() << "checkBoxConstContent layout not found";
     QHBoxLayout *checkBoxConstLayout = qobject_cast<QHBoxLayout *>(layout);
     if (!checkBoxConstLayout)
         qCritical() << "checkBoxConstLayout not found";
-    QCheckBox *checkBoxConst = qobject_cast<QCheckBox *>(checkBoxConstLayout->itemAt(0)->widget());
+    QLayoutItem *checkBoxConstItem = checkBoxConstLayout->itemAt(0);
+    if (!checkBoxConstItem)
+        qCritical() << "checkBoxConst item not found";
+    QCheckBox *checkBoxConst = qobject_cast<QCheckBox *>(checkBoxConstItem->widget());
     if (!checkBoxConst)
         qCritical() << "checkBoxConst not found";
     return checkBoxConst->isChecked();
@@ -63,14 +74,16 @@ bool checkCheckBoxConst(QWidget *checkBoxConstContent) {
 
 void MainWindow::on_pushButton_clicked()
 {
+    enum { NO_PATTERN = 0, SINGLETON = 1, ABSTRACT_FACTORY = 2 };
+
     const QString patternType = ui->comboBox->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
     QString text = "";
 
     switch (patternTypeIndex) {
-        case 0:
+        case NO_PATTERN:
             break;
-        case 1: {
+        case SINGLETON: {
             QLineEdit *lineEditSngltn = ui->centralwidget->findChild<QLineEdit *>("lineEditSngltn");
             if (!lineEditSngltn)
                 qCritical() << "lineEditSngltn not found";
@@ -78,25 +91,28 @@ void MainWindow::on_pushButton_clicked()
 
             text = codeGenerator->genSingleton(className);
             break;
-        } case 2: {
+        } case ABSTRACT_FACTORY: {
             QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
             if (!btnRawPointer)
                 qCritical() << "btnRawPointer not found";
             QRadioButton *btnUniquePointer = ui->centralwidget->findChild<QRadioButton *>("btnUniquePointer");
             if (!btnUniquePointer)
                 qCritical() << "btnUniquePointer not found";
-            // 0 = raw; 1 = unique; 2 = shared
-            int pointerType = 0;
+
+            enum POINTER_TYPE { RAW, UNIQUE, SHARED };
+
+            int pointerType = RAW;
             if (btnUniquePointer->isChecked())
-                pointerType = 1;
+                pointerType = UNIQUE;
             else if (not btnRawPointer->isChecked())
-                pointerType = 2;
+                pointerType = SHARED;
 
             QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
             if (!listOfFactories)
                 qCritical() << "listOfFactories not found";
             QVector<QString> factories(listOfFactories->count());
-            for (int factoryItemIndex = 0; factoryItemIndex < listOfFactories->count(); ++factoryItemIndex) {
+            const int factoriesNum = listOfFactories->count();
+            for (int factoryItemIndex = 0; factoryItemIndex < factoriesNum; ++factoryItemIndex) {
                 factories[factoryItemIndex] = listOfFactories->item(factoryItemIndex)->text();
             }
 
@@ -104,17 +120,20 @@ void MainWindow::on_pushButton_clicked()
             if (!listOfFactories)
                 qCritical() << "listOfFactories not found";
             QVector<QString> products(listOfProducts->count());
-            for (int productItemIndex = 0; productItemIndex < listOfProducts->count(); ++productItemIndex) {
+            const int productsNum = listOfProducts->count();
+            for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
                 products[productItemIndex] = listOfProducts->item(productItemIndex)->text();
             }
 
             QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
             if (!listOfProductsMethods)
                 qCritical() << "listOfProductsMethods not found";
-            QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethods->widget()->layout());
+            QWidget *listOfProductsMethodsWidget = listOfProductsMethods->widget();
+            if (!listOfProductsMethodsWidget)
+                qCritical() << "listOfProductsMethods widget not found";
+            QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
             if (!layoutProductsMethodsList)
                 qCritical() << "layoutProductsMethodsList not found";
-            const int productsNum = layoutProductsMethodsList->count();
             QVector<QVector<ClassMethod *>> productsMethods(productsNum);
 
             for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
@@ -122,26 +141,42 @@ void MainWindow::on_pushButton_clicked()
                 QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
                 if (!productMethods)
                     qCritical() << "productMethods not found";
-                QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(productMethods->itemAt(1)->widget());
+                QLayoutItem *tableProductMethodsItem = productMethods->itemAt(1); //0 - labels and buttons widget, 1 - table
+                if (!tableProductMethodsItem)
+                    qCritical() << "tableProductMethods item not found";
+                QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(tableProductMethodsItem->widget());
                 if (!tableProductMethods)
                     qCritical() << "tableProductMethods not found";
                 const int productMethodsNum = tableProductMethods->rowCount();
+                assert(productsMethods.count() > productItemIndex);
                 productsMethods[productItemIndex].resize(productMethodsNum);
 
                 for (int productMethodIndex = 0; productMethodIndex < productMethodsNum; ++productMethodIndex) {
                     const int argsNum = getProductMethodArgsNum(tableProductMethods->cellWidget(productMethodIndex, 0));
                     const bool isConst = checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 1));
-                    const QString type = tableProductMethods->item(productMethodIndex, 2)->text();
-                    const QString name = tableProductMethods->item(productMethodIndex, 3)->text();
+                    QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 2);
+                    if (!typeItem)
+                        qCritical() << "type item not found";
+                    const QString type = typeItem->text();
+                    QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 3);
+                    if (!nameItem)
+                        qCritical() << "name item not found";
+                    const QString name = nameItem->text();
                     ClassMethod *productMethod = new ClassMethod(isConst, type, name, argsNum);
 
                     for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
+                        QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 5+argIndex*3);
+                        if (!typeItem)
+                            qCritical() << "type item not found";
+                        QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 6+argIndex*3);
+                        if (!nameItem)
+                            qCritical() << "name item not found";
                         Argument *arg = new Argument(checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 4+argIndex*3)),
-                                                     tableProductMethods->item(productMethodIndex, 5+argIndex*3)->text(),
-                                                     tableProductMethods->item(productMethodIndex, 6+argIndex*3)->text());
+                                                     typeItem->text(), nameItem->text());
                         productMethod->addArgument(arg, argIndex);
                     }
 
+                    assert(productsMethods[productItemIndex].count() > productMethodIndex);
                     productsMethods[productItemIndex][productMethodIndex] = productMethod;
                 }
             }
@@ -150,9 +185,7 @@ void MainWindow::on_pushButton_clicked()
 
             for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
                 qDeleteAll(productsMethods[productItemIndex]);
-                //productsMethodsList[productItemIndex].clear();
             }
-            //productsMethodsList.clear();
             break;
         } default:
             qWarning() << "Unexpected pattern type";
@@ -173,11 +206,13 @@ void delWidgetsFromLayout(QLayout *layout) {
 }
 
 void clearRowColFromGridLayout(QGridLayout *layout) {
-    for (int row = 0; row < layout->rowCount(); ++row) {
+    const int rowCount = layout->rowCount();
+    for (int row = 0; row < rowCount; ++row) {
         layout->setRowMinimumHeight(row, 0);
         layout->setRowStretch(row, 0);
     }
-    for (int column = 0; column < layout->columnCount(); ++column) {
+    const int columnCount = layout->columnCount();
+    for (int column = 0; column < columnCount; ++column) {
         layout->setColumnMinimumWidth(column, 0);
         layout->setColumnStretch(column, 0);
     }
@@ -218,7 +253,10 @@ void MainWindow::spinBoxNumProductsChanged(const int nextProductsNum) {
     QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
     if (!listOfProductsMethods)
         qCritical() << "listOfProductsMethods not found";
-    QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethods->widget()->layout());
+    QWidget *listOfProductsMethodsWidget = listOfProductsMethods->widget();
+    if (!listOfProductsMethodsWidget)
+        qCritical() << "listOfProductsMethods widget not found";
+    QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
     if (!layoutProductsMethodsList)
         qCritical() << "layoutProductsMethodsList not found";
     const int currProductsNum = listOfProducts->count();
@@ -277,7 +315,7 @@ void MainWindow::changeArgsCountInTable(const int nextArgsNum) {
     QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(spinBoxNumArgsContent->parent());
     if (!tableProductMethods)
         qCritical() << "tableProductMethods not found";
-    const int currArgsNum = int((tableProductMethods->columnCount()-4)/3);
+    const int currArgsNum = (tableProductMethods->columnCount()-4)/3;
     const int currMethodsNum = tableProductMethods->rowCount();
 
     if (nextArgsNum > currArgsNum) {
@@ -293,7 +331,7 @@ void MainWindow::changeArgsCountInTable(const int nextArgsNum) {
             }
         }
     } else {
-        const int currMethodIndex = QObject::sender()->objectName().toInt();
+        const int currMethodIndex = QObject::sender()->objectName().toInt(); // spinBoxNumArgs in addSpinBoxNumArgsToCell
         const int minPossibleArgsNum = qMax(findMaxArgsNumInTable(tableProductMethods, currMethodIndex), nextArgsNum);
         tableProductMethods->setColumnCount(4+minPossibleArgsNum*3);
     }
@@ -305,7 +343,7 @@ void MainWindow::addSpinBoxNumArgsToCell(QTableWidget *table, const int rowIndex
     QSpinBox *spinBoxNumArgs = new QSpinBox;
 
     spinBoxNumArgs->setFixedSize(60, 30);
-    spinBoxNumArgs->setObjectName(QString::number(rowIndex)); // ???
+    spinBoxNumArgs->setObjectName(QString::number(rowIndex));
     spinBoxNumArgsContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     spinBoxNumArgsLayout->setMargin(0);
     spinBoxNumArgsLayout->setAlignment(Qt::AlignCenter);
@@ -325,7 +363,10 @@ void MainWindow::changeMethodsCountInTable(const int nextMethodsNum) {
     QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
     if (!productMethods)
         qCritical() << "productMethods not found";
-    QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(productMethods->itemAt(1)->widget());
+    QLayoutItem *tableProductMethodsItem = productMethods->itemAt(1); //0 - labels and buttons widget, 1 - table
+    if (!tableProductMethodsItem)
+        qCritical() << "tableProductMethods item not found";
+    QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(tableProductMethodsItem->widget());
     if (!tableProductMethods)
         qCritical() << "tableProductMethods not found";
     const int currMethodsNum = tableProductMethods->rowCount();
@@ -349,6 +390,8 @@ void MainWindow::changeMethodsCountInTable(const int nextMethodsNum) {
 
 void MainWindow::delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, const int index) {
     QLayoutItem *productMethodsContentItem = layoutProductsMethodsList->itemAt(index);
+    if (!productMethodsContentItem)
+        qCritical() << "productMethodsContent item not found";
     layoutProductsMethodsList->removeItem(productMethodsContentItem);
     productMethodsContentItem->widget()->deleteLater();
     delete productMethodsContentItem;
@@ -406,7 +449,7 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
     QListWidget *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
     if (!listOfProducts)
         qCritical() << "listOfProducts not found";
-    const int index = listOfProducts->currentRow(); // ???
+    const int index = listOfProducts->currentRow();
     QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
     if (!listOfProductsMethods)
         qCritical() << "listOfProductsMethods not found";
@@ -414,15 +457,24 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
     QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(contentOfListOfProductsMethods->layout());
     if (!layoutProductsMethodsList)
         qCritical() << "layoutProductsMethodsList not found";
-    QWidget *productMethodsContent = layoutProductsMethodsList->itemAt(index)->widget();
+    QLayoutItem *productMethodsContentItem = layoutProductsMethodsList->itemAt(index);
+    if (!productMethodsContentItem)
+        qCritical() << "productMethodsContent item not found";
+    QWidget *productMethodsContent = productMethodsContentItem->widget();
     QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
     if (!productMethods)
         qCritical() << "productMethods not found";
-    QWidget *labelAndButtonsContent = productMethods->itemAt(0)->widget();
+    QLayoutItem *labelAndButtonsContentItem = productMethods->itemAt(0); //0 - labels and buttons widget, 1 - table
+    if (!labelAndButtonsContentItem)
+        qCritical() << "labelAndButtonsContent item not found";
+    QWidget *labelAndButtonsContent = labelAndButtonsContentItem->widget();
     QHBoxLayout *labelAndButtons = qobject_cast<QHBoxLayout *>(labelAndButtonsContent->layout());
     if (!labelAndButtons)
         qCritical() << "labelAndButtons not found";
-    QLabel *labelProductMethods = qobject_cast<QLabel *>(labelAndButtons->itemAt(0)->widget());
+    QLayoutItem *labelProductMethodsItem = labelAndButtons->itemAt(0);
+    if (!labelProductMethodsItem)
+        qCritical() << "labelProductMethods item not found";
+    QLabel *labelProductMethods = qobject_cast<QLabel *>(labelProductMethodsItem->widget());
     if (!labelProductMethods)
         qCritical() << "labelProductMethods not found";
     labelProductMethods->setText(productNameItem->text() + " methods:");

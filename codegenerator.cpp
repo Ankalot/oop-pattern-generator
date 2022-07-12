@@ -4,7 +4,7 @@
 
 #include <QDebug>
 
-QString CodeGenerator::genSingleton(const QString &className) {
+QString CodeGenerator::genSingleton(const QString &className) const {
     QString singletoneText = QString("\
 class %1 {\n\n\
 public:\n\
@@ -160,7 +160,7 @@ public:\n\
 }
 
 QString CodeGenerator::genAbstractFactory(int &pointerType, QVector<QString> &factories, QVector<QString> &products,
-                                          QVector<QVector<ClassMethod *>> &productsMethods) {
+                                          QVector<QVector<ClassMethod *>> &productsMethods) const {
     const QString productsText = makeProductsText(productsMethods, products, factories);
     const QString factoriesText = makeFactoriesText(products, factories, pointerType);
     return (productsText + factoriesText);

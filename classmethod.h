@@ -16,11 +16,11 @@ public:
 
     void addArgument(Argument *arg, int i);
 
-    bool constFlag();
-    QString getType();
-    QString getName();
-    int getArgsNum();
-    Argument *getArgument(int i);
+    bool constFlag() const;
+    const QString &getType() const;
+    const QString &getName() const;
+    int getArgsNum() const;
+    Argument *getArgument(int i) const;
 
 private:
     bool isConst;

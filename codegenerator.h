@@ -13,8 +13,8 @@ class CodeGenerator {
 public:
     CodeGenerator() = default;
 
-    QString genSingleton(const QString &className);
+    QString genSingleton(const QString &className) const;
     QString genAbstractFactory(int &pointerType, QVector<QString> &factories, QVector<QString> &products,
-                               QVector<QVector<ClassMethod *>> &productsMethods);
+                               QVector<QVector<ClassMethod *>> &productsMethods) const;
 };
 #endif // CODEGENERATOR_H
