@@ -4,6 +4,7 @@
 #include "classmethod.h"
 #include "argument.h"
 
+#include <cassert>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QDebug>
@@ -147,6 +148,7 @@ void MainWindow::on_pushButton_clicked()
                 if (!tableProductMethods)
                     qCritical() << "tableProductMethods not found";
                 const int productMethodsNum = tableProductMethods->rowCount();
+                assert(productsMethods.count() > productItemIndex);
                 productsMethods[productItemIndex].resize(productMethodsNum);
 
                 for (int productMethodIndex = 0; productMethodIndex < productMethodsNum; ++productMethodIndex) {
@@ -174,6 +176,7 @@ void MainWindow::on_pushButton_clicked()
                         productMethod->addArgument(arg, argIndex);
                     }
 
+                    assert(productsMethods[productItemIndex].count() > productMethodIndex);
                     productsMethods[productItemIndex][productMethodIndex] = productMethod;
                 }
             }
