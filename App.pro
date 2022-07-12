@@ -19,6 +19,7 @@ SOURCES += \
     argument.cpp \
     classmethod.cpp \
     codegenerator.cpp \
+    exportwindow.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -26,12 +27,17 @@ HEADERS += \
     argument.h \
     classmethod.h \
     codegenerator.h \
+    exportwindow.h \
     mainwindow.h
 
 FORMS += \
+    exportwindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resource.qrc

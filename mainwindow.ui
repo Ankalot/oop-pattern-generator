@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>App</string>
+   <string>OOP pattern generator</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
@@ -30,7 +30,7 @@
     <item row="0" column="0">
      <layout class="QGridLayout" name="gridLayoutCentral">
       <item row="2" column="0">
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="pushBtnGenerate">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -43,12 +43,12 @@
          </font>
         </property>
         <property name="text">
-         <string>Copy to clipboard!</string>
+         <string>Generate!</string>
         </property>
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="cmbBoxPatternName">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -76,6 +76,38 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>29</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionExport_to"/>
+   </widget>
+   <addaction name="menuSettings"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionExport_to">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/icons/images/export_to.png</normaloff>:/icons/images/export_to.png</iconset>
+   </property>
+   <property name="text">
+    <string>Export</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

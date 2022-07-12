@@ -3,6 +3,7 @@
 #include "codegenerator.h"
 #include "classmethod.h"
 #include "argument.h"
+#include "exportwindow.h"
 
 #include <cassert>
 #include <QCheckBox>
@@ -13,27 +14,54 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QSpinBox>
+#include <QCloseEvent>
+
+void MainWindow::writeSettings()
+{
+    settings->beginGroup("MainWindow");
+    settings->setValue("size", size());
+    settings->setValue("pos", pos());
+    settings->endGroup();
+}
+
+void MainWindow::readSettings()
+{
+    settings->beginGroup("MainWindow");
+    resize(settings->value("size", QSize(800, 500)).toSize());
+    move(settings->value("pos", QPoint(200, 200)).toPoint());
+    settings->endGroup();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    writeSettings();
+    event->accept();
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow), codeGenerator(new CodeGenerator)
 {
     ui->setupUi(this);
-    ui->comboBox->addItem("Select pattern");
-    ui->comboBox->addItem("Singleton");
-    ui->comboBox->addItem("Abstract factory");
+    ui->cmbBoxPatternName->addItem("Select pattern");
+    ui->cmbBoxPatternName->addItem("Singleton");
+    ui->cmbBoxPatternName->addItem("Abstract factory");
     ui->gridLayoutSpecial->setRowStretch(0, 1);
 
     patternTypesList = new QStringList;
     *patternTypesList << "Select pattern" << "Singleton" << "Abstract factory";
 
-    connect(ui->comboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(comboBox_indexChanged()));
+    connect(ui->cmbBoxPatternName, SIGNAL(currentIndexChanged(QString)), this, SLOT(comboBox_indexChanged()));
+
+    settings = new QSettings("OOP-P-G", "Main settings");
+    readSettings();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
     delete codeGenerator;
+    delete settings;
 }
 
 int getProductMethodArgsNum(QWidget *spinBoxNumArgsContent) {
@@ -72,11 +100,11 @@ bool checkCheckBoxConst(QWidget *checkBoxConstContent) {
     return checkBoxConst->isChecked();
 }
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_pushBtnGenerate_clicked()
 {
     enum { NO_PATTERN = 0, SINGLETON = 1, ABSTRACT_FACTORY = 2 };
 
-    const QString patternType = ui->comboBox->currentText();
+    const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
     QString text = "";
 
@@ -481,7 +509,7 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
 }
 
 void MainWindow::comboBox_indexChanged() {
-    const QString patternType = ui->comboBox->currentText();
+    const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
 
     clearGridLayout(ui->gridLayoutSpecial);
@@ -599,4 +627,9 @@ void MainWindow::comboBox_indexChanged() {
             qWarning() << "Unexpected pattern type";
             break;
     }
+}
+
+void MainWindow::on_actionExport_to_triggered() {
+    ExportWindow *exportWindow = new ExportWindow(this, settings);
+    exportWindow->exec();
 }

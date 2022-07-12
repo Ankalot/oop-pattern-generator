@@ -5,6 +5,7 @@
 #include <QListWidget>
 #include <QMainWindow>
 #include <QTableWidget>
+#include <QSettings>
 
 class CodeGenerator;
 
@@ -20,8 +21,10 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
-    void on_pushButton_clicked();
+    void on_pushBtnGenerate_clicked();
     void comboBox_indexChanged();
 
     void spinBoxNumFactoriesChanged(int nextFactoriesNum);
@@ -32,14 +35,19 @@ private slots:
 
     void changeProductNameInTable(QListWidgetItem *productNameItem);
 
+    void on_actionExport_to_triggered();
+
 private:
     Ui::MainWindow *ui;
     CodeGenerator *codeGenerator;
+    QSettings *settings;
 
     void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
-
     void addSpinBoxNumArgsToCell(QTableWidget *table, int rowIndex, int columnIndex);
+
+    void readSettings();
+    void writeSettings();
 
     QStringList *patternTypesList;
 
