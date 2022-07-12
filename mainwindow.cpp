@@ -73,14 +73,16 @@ bool checkCheckBoxConst(QWidget *checkBoxConstContent) {
 
 void MainWindow::on_pushButton_clicked()
 {
+    enum { NO_PATTERN = 0, SINGLETON = 1, ABSTRACT_FACTORY = 2 };
+
     const QString patternType = ui->comboBox->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
     QString text = "";
 
     switch (patternTypeIndex) {
-        case 0:
+        case NO_PATTERN:
             break;
-        case 1: {
+        case SINGLETON: {
             QLineEdit *lineEditSngltn = ui->centralwidget->findChild<QLineEdit *>("lineEditSngltn");
             if (!lineEditSngltn)
                 qCritical() << "lineEditSngltn not found";
@@ -88,19 +90,21 @@ void MainWindow::on_pushButton_clicked()
 
             text = codeGenerator->genSingleton(className);
             break;
-        } case 2: {
+        } case ABSTRACT_FACTORY: {
             QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
             if (!btnRawPointer)
                 qCritical() << "btnRawPointer not found";
             QRadioButton *btnUniquePointer = ui->centralwidget->findChild<QRadioButton *>("btnUniquePointer");
             if (!btnUniquePointer)
                 qCritical() << "btnUniquePointer not found";
-            // 0 = raw; 1 = unique; 2 = shared
-            int pointerType = 0;
+
+            enum POINTER_TYPE { RAW, UNIQUE, SHARED };
+
+            int pointerType = RAW;
             if (btnUniquePointer->isChecked())
-                pointerType = 1;
+                pointerType = UNIQUE;
             else if (not btnRawPointer->isChecked())
-                pointerType = 2;
+                pointerType = SHARED;
 
             QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
             if (!listOfFactories)
