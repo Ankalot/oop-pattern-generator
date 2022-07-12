@@ -6,14 +6,14 @@ Argument::Argument(bool isConst, QString type, QString name) {
     this->name = name;
 }
 
-bool Argument::constFlag() {
-    return this->isConst;
+bool Argument::constFlag() const {
+    return isConst;
 }
 
-QString Argument::getType() {
-    return this->type;
+const QString &Argument::getType() const {
+    return type;
 }
 
-QString Argument::getName() {
-    return this->name;
+const QString &Argument::getName() const {
+    return name;
 }

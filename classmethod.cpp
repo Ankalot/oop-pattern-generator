@@ -6,7 +6,7 @@ ClassMethod::ClassMethod(bool isConst, QString type, QString name, int argsNum) 
     this->type = type;
     this->name = name;
     this->argsNum = argsNum;
-    this->arguments.resize(argsNum);
+    arguments.resize(argsNum);
 }
 
 ClassMethod::~ClassMethod() {
@@ -15,25 +15,25 @@ ClassMethod::~ClassMethod() {
 }
 
 void ClassMethod::addArgument(Argument *arg, int i) {
-    this->arguments[i] = arg;
+    arguments[i] = arg;
 }
 
-bool ClassMethod::constFlag() {
-    return this->isConst;
+bool ClassMethod::constFlag() const {
+    return isConst;
 }
 
-QString ClassMethod::getType() {
-    return this->type;
+const QString &ClassMethod::getType() const {
+    return type;
 }
 
-QString ClassMethod::getName() {
-    return this->name;
+const QString &ClassMethod::getName() const {
+    return name;
 }
 
-int ClassMethod::getArgsNum() {
-    return this->argsNum;
+int ClassMethod::getArgsNum() const {
+    return argsNum;
 }
 
-Argument *ClassMethod::getArgument(int i) {
-    return this->arguments[i];
+Argument *ClassMethod::getArgument(int i) const {
+    return arguments[i];
 }

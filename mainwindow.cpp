@@ -185,9 +185,7 @@ void MainWindow::on_pushButton_clicked()
 
             for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
                 qDeleteAll(productsMethods[productItemIndex]);
-                //productsMethodsList[productItemIndex].clear();
             }
-            //productsMethodsList.clear();
             break;
         } default:
             qWarning() << "Unexpected pattern type";
@@ -317,7 +315,7 @@ void MainWindow::changeArgsCountInTable(const int nextArgsNum) {
     QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(spinBoxNumArgsContent->parent());
     if (!tableProductMethods)
         qCritical() << "tableProductMethods not found";
-    const int currArgsNum = int((tableProductMethods->columnCount()-4)/3);
+    const int currArgsNum = (tableProductMethods->columnCount()-4)/3;
     const int currMethodsNum = tableProductMethods->rowCount();
 
     if (nextArgsNum > currArgsNum) {
@@ -333,7 +331,7 @@ void MainWindow::changeArgsCountInTable(const int nextArgsNum) {
             }
         }
     } else {
-        const int currMethodIndex = QObject::sender()->objectName().toInt();
+        const int currMethodIndex = QObject::sender()->objectName().toInt(); // spinBoxNumArgs in addSpinBoxNumArgsToCell
         const int minPossibleArgsNum = qMax(findMaxArgsNumInTable(tableProductMethods, currMethodIndex), nextArgsNum);
         tableProductMethods->setColumnCount(4+minPossibleArgsNum*3);
     }
@@ -345,7 +343,7 @@ void MainWindow::addSpinBoxNumArgsToCell(QTableWidget *table, const int rowIndex
     QSpinBox *spinBoxNumArgs = new QSpinBox;
 
     spinBoxNumArgs->setFixedSize(60, 30);
-    spinBoxNumArgs->setObjectName(QString::number(rowIndex)); // ???
+    spinBoxNumArgs->setObjectName(QString::number(rowIndex));
     spinBoxNumArgsContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     spinBoxNumArgsLayout->setMargin(0);
     spinBoxNumArgsLayout->setAlignment(Qt::AlignCenter);
@@ -451,7 +449,7 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
     QListWidget *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
     if (!listOfProducts)
         qCritical() << "listOfProducts not found";
-    const int index = listOfProducts->currentRow(); // ???
+    const int index = listOfProducts->currentRow();
     QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
     if (!listOfProductsMethods)
         qCritical() << "listOfProductsMethods not found";
