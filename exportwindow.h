@@ -19,6 +19,14 @@ private slots:
 
     void on_pshBtnCancel_clicked();
 
+    void on_radBtnClipboard_clicked();
+
+    void on_radBtnCppFile_clicked();
+
+    void on_radBtnCppAndHFile_clicked();
+
+    void on_radBtnCppAndHSepFiles_clicked();
+
 private:
     Ui::ExportWindow *ui;
     QSettings *settings;
@@ -26,7 +34,7 @@ private:
     void readSettings();
     void writeSettings();
 
-    enum { CLIPBOARD, CPPFILE, HANDCPPFILE };
+    enum { CLIPBOARD, CPP_FILE, H_AND_CPP_FILE, H_AND_CPP_SEP_FILES };
 
 };
 
