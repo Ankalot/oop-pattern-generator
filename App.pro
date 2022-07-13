@@ -18,6 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     argument.cpp \
     classmethod.cpp \
+    classtext.cpp \
     codegenerator.cpp \
     exportwindow.cpp \
     main.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
 HEADERS += \
     argument.h \
     classmethod.h \
+    classtext.h \
     codegenerator.h \
     exportwindow.h \
     mainwindow.h

@@ -13,18 +13,15 @@ void ExportWindow::readSettings() {
         case CPP_FILE:
             ui->radBtnCppFile->setChecked(true);
             break;
-        case H_AND_CPP_FILE:
-            ui->radBtnCppAndHFile->setChecked(true);
-            break;
-        case H_AND_CPP_SEP_FILES:
-            ui->radBtnCppAndHSepFiles->setChecked(true);
+        case H_AND_CPP_FILES:
+            ui->radBtnCppAndHFiles->setChecked(true);
             break;
         default:
             qWarning() << "Wrong export type setting";
             break;
     }
-    ui->lblFileName->setEnabled(exportType == CPP_FILE or exportType == H_AND_CPP_FILE);
-    ui->lineEditFileName->setEnabled(exportType == CPP_FILE or exportType == H_AND_CPP_FILE);
+    ui->lblFileName->setEnabled(exportType == CPP_FILE);
+    ui->lineEditFileName->setEnabled(exportType == CPP_FILE);
     ui->lblFolderPath->setEnabled(exportType != CLIPBOARD);
     ui->lineEditFolderPath->setEnabled(exportType != CLIPBOARD);
 
@@ -41,10 +38,8 @@ void ExportWindow::writeSettings() {
         settings->setValue("type", CLIPBOARD);
     else if (ui->radBtnCppFile->isChecked())
         settings->setValue("type", CPP_FILE);
-    else if (ui->radBtnCppAndHFile->isChecked())
-        settings->setValue("type", H_AND_CPP_FILE);
-    else if (ui->radBtnCppAndHSepFiles->isChecked())
-        settings->setValue("type", H_AND_CPP_SEP_FILES);
+    else if (ui->radBtnCppAndHFiles->isChecked())
+        settings->setValue("type", H_AND_CPP_FILES);
     settings->setValue("folderPath", ui->lineEditFolderPath->text());
     settings->setValue("fileName", ui->lineEditFileName->text());
     settings->endGroup();
@@ -88,15 +83,7 @@ void ExportWindow::on_radBtnCppFile_clicked()
     ui->lineEditFolderPath->setEnabled(true);
 }
 
-void ExportWindow::on_radBtnCppAndHFile_clicked()
-{
-    ui->lblFileName->setEnabled(true);
-    ui->lineEditFileName->setEnabled(true);
-    ui->lblFolderPath->setEnabled(true);
-    ui->lineEditFolderPath->setEnabled(true);
-}
-
-void ExportWindow::on_radBtnCppAndHSepFiles_clicked()
+void ExportWindow::on_radBtnCppAndHFiles_clicked()
 {
     ui->lblFileName->setEnabled(false);
     ui->lineEditFileName->setEnabled(false);

@@ -23,9 +23,7 @@ private slots:
 
     void on_radBtnCppFile_clicked();
 
-    void on_radBtnCppAndHFile_clicked();
-
-    void on_radBtnCppAndHSepFiles_clicked();
+    void on_radBtnCppAndHFiles_clicked();
 
 private:
     Ui::ExportWindow *ui;
@@ -34,7 +32,7 @@ private:
     void readSettings();
     void writeSettings();
 
-    enum { CLIPBOARD, CPP_FILE, H_AND_CPP_FILE, H_AND_CPP_SEP_FILES };
+    enum { CLIPBOARD, CPP_FILE, H_AND_CPP_FILES };
 
 };
 

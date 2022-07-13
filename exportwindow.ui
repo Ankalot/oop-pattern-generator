@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>550</width>
-    <height>361</height>
+    <height>339</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -52,14 +52,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QRadioButton" name="radBtnCppAndHFile">
-       <property name="text">
-        <string>.h and .cpp files</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="radBtnCppAndHSepFiles">
+      <widget class="QRadioButton" name="radBtnCppAndHFiles">
        <property name="text">
         <string>.h and .cpp files for each class</string>
        </property>

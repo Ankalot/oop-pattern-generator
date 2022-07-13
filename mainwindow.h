@@ -49,9 +49,18 @@ private:
     void readSettings();
     void writeSettings();
 
+    bool generateSingleton(int exportType);
+    bool generateAbstractFactory(int exportType);
+
+    QString getExportFolderPath();
+    bool writeTextToFile(const QString &fileFullName, const QString &text);
+
     QStringList *patternTypesList;
 
     const int TableOfProductMethodsWidth = 700;
     const int TableOfProductMethodsHeight = 350;
+
+    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY };
+    enum EXPORT_TYPE { CLIPBOARD, CPP_FILE, H_AND_CPP_FILES };
 };
 #endif // MAINWINDOW_H
