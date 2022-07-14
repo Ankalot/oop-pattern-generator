@@ -18,20 +18,28 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     argument.cpp \
     classmethod.cpp \
+    classtext.cpp \
     codegenerator.cpp \
+    exportwindow.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
     argument.h \
     classmethod.h \
+    classtext.h \
     codegenerator.h \
+    exportwindow.h \
     mainwindow.h
 
 FORMS += \
+    exportwindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resource.qrc

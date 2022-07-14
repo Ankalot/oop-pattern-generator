@@ -2,38 +2,68 @@
 #include "ui_mainwindow.h"
 #include "codegenerator.h"
 #include "classmethod.h"
+#include "classtext.h"
 #include "argument.h"
+#include "exportwindow.h"
 
 #include <cassert>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QDebug>
+#include <QFile>
 #include <QLabel>
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QSpinBox>
+#include <QCloseEvent>
+
+void MainWindow::writeSettings()
+{
+    settings->beginGroup("MainWindow");
+    settings->setValue("size", size());
+    settings->setValue("pos", pos());
+    settings->endGroup();
+}
+
+void MainWindow::readSettings()
+{
+    settings->beginGroup("MainWindow");
+    resize(settings->value("size", QSize(800, 500)).toSize());
+    move(settings->value("pos", QPoint(200, 200)).toPoint());
+    settings->endGroup();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    writeSettings();
+    event->accept();
+}
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow), codeGenerator(new CodeGenerator)
+    , ui(new Ui::MainWindow), codeGenerator(new CodeGenerator(true))
 {
     ui->setupUi(this);
-    ui->comboBox->addItem("Select pattern");
-    ui->comboBox->addItem("Singleton");
-    ui->comboBox->addItem("Abstract factory");
+    ui->cmbBoxPatternName->addItem("Select pattern");
+    ui->cmbBoxPatternName->addItem("Singleton");
+    ui->cmbBoxPatternName->addItem("Abstract factory");
     ui->gridLayoutSpecial->setRowStretch(0, 1);
 
     patternTypesList = new QStringList;
     *patternTypesList << "Select pattern" << "Singleton" << "Abstract factory";
 
-    connect(ui->comboBox, SIGNAL(currentIndexChanged(QString)), this, SLOT(comboBox_indexChanged()));
+    connect(ui->cmbBoxPatternName, SIGNAL(currentIndexChanged(QString)), this, SLOT(comboBox_indexChanged()));
+
+    settings = new QSettings("OOP-P-G", "Main settings");
+    readSettings();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
     delete codeGenerator;
+    delete settings;
 }
 
 int getProductMethodArgsNum(QWidget *spinBoxNumArgsContent) {
@@ -72,127 +102,215 @@ bool checkCheckBoxConst(QWidget *checkBoxConstContent) {
     return checkBoxConst->isChecked();
 }
 
-void MainWindow::on_pushButton_clicked()
-{
-    enum { NO_PATTERN = 0, SINGLETON = 1, ABSTRACT_FACTORY = 2 };
+QString MainWindow::getExportFolderPath() {
+    QString folderPath = settings->value("Export/folderPath").toString();
+    QCharRef lastChar = folderPath[folderPath.length()-1];
+    if (lastChar != "/" and lastChar != "\\")
+        folderPath += "/";
+    return folderPath;
+}
 
-    const QString patternType = ui->comboBox->currentText();
+bool MainWindow::writeTextToFile(const QString &fileFullName, const QString &text) {
+    QFile file(fileFullName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Can't open file " + fileFullName;
+        ui->statusBar->showMessage("Can't open file: " + fileFullName, 5000);
+        return false;
+    }
+    QTextStream stream(&file);
+    stream << text;
+    file.close();
+    return true;
+}
+
+bool MainWindow::generateSingleton(int exportType) {
+    QLineEdit *lineEditSngltn = ui->centralwidget->findChild<QLineEdit *>("lineEditSngltn");
+    if (!lineEditSngltn)
+        qCritical() << "lineEditSngltn not found";
+    const QString className = lineEditSngltn->text();
+
+    switch (exportType) {
+        case CLIPBOARD: {
+            QString text;
+            codeGenerator->genSingleton(&text, className);
+            QApplication::clipboard()->setText(text);
+            break;
+        } case CPP_FILE: {
+            QString text;
+            codeGenerator->genSingleton(&text, className);
+            const QString fileName = settings->value("Export/fileName").toString();
+            const QString folderPath = getExportFolderPath();
+            if (!writeTextToFile(folderPath + fileName + ".cpp", text))
+                return false;
+            break;
+        } case H_AND_CPP_FILES:
+            QString text1, text2;
+            codeGenerator->genSingleton(&text1, &text2, className);
+            const QString fileName = className.toLower();
+            const QString folderPath = getExportFolderPath();
+            if (!writeTextToFile(folderPath + fileName + ".h", text1))
+                return false;
+            if (!writeTextToFile(folderPath + fileName + ".cpp", text2))
+                return false;
+            break;
+    }
+    return true;
+}
+
+bool MainWindow::generateAbstractFactory(int exportType) {
+    bool success = true;;
+    QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
+    if (!btnRawPointer)
+        qCritical() << "btnRawPointer not found";
+    QRadioButton *btnUniquePointer = ui->centralwidget->findChild<QRadioButton *>("btnUniquePointer");
+    if (!btnUniquePointer)
+        qCritical() << "btnUniquePointer not found";
+
+    enum POINTER_TYPE { RAW, UNIQUE, SHARED };
+
+    int pointerType = RAW;
+    if (btnUniquePointer->isChecked())
+        pointerType = UNIQUE;
+    else if (not btnRawPointer->isChecked())
+        pointerType = SHARED;
+
+    QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
+    if (!listOfFactories)
+        qCritical() << "listOfFactories not found";
+    QVector<QString> factories(listOfFactories->count());
+    const int factoriesNum = listOfFactories->count();
+    for (int factoryItemIndex = 0; factoryItemIndex < factoriesNum; ++factoryItemIndex) {
+        factories[factoryItemIndex] = listOfFactories->item(factoryItemIndex)->text();
+    }
+
+    QListWidget *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
+    if (!listOfFactories)
+        qCritical() << "listOfFactories not found";
+    QVector<QString> products(listOfProducts->count());
+    const int productsNum = listOfProducts->count();
+    for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
+        products[productItemIndex] = listOfProducts->item(productItemIndex)->text();
+    }
+
+    QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
+    if (!listOfProductsMethods)
+        qCritical() << "listOfProductsMethods not found";
+    QWidget *listOfProductsMethodsWidget = listOfProductsMethods->widget();
+    if (!listOfProductsMethodsWidget)
+        qCritical() << "listOfProductsMethods widget not found";
+    QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
+    if (!layoutProductsMethodsList)
+        qCritical() << "layoutProductsMethodsList not found";
+    QVector<QVector<ClassMethod *>> productsMethods(productsNum);
+
+    for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
+        QWidget *productMethodsContent = layoutProductsMethodsList->itemAt(productItemIndex)->widget();
+        QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
+        if (!productMethods)
+            qCritical() << "productMethods not found";
+        QLayoutItem *tableProductMethodsItem = productMethods->itemAt(1); //0 - labels and buttons widget, 1 - table
+        if (!tableProductMethodsItem)
+            qCritical() << "tableProductMethods item not found";
+        QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(tableProductMethodsItem->widget());
+        if (!tableProductMethods)
+            qCritical() << "tableProductMethods not found";
+        const int productMethodsNum = tableProductMethods->rowCount();
+        assert(productsMethods.count() > productItemIndex);
+        productsMethods[productItemIndex].resize(productMethodsNum);
+
+        for (int productMethodIndex = 0; productMethodIndex < productMethodsNum; ++productMethodIndex) {
+            const int argsNum = getProductMethodArgsNum(tableProductMethods->cellWidget(productMethodIndex, 0));
+            const bool isConst = checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 1));
+            QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 2);
+            if (!typeItem)
+                qCritical() << "type item not found";
+            const QString type = typeItem->text();
+            QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 3);
+            if (!nameItem)
+                qCritical() << "name item not found";
+            const QString name = nameItem->text();
+            ClassMethod *productMethod = new ClassMethod(isConst, type, name, argsNum);
+
+            for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
+                QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 5+argIndex*3);
+                if (!typeItem)
+                    qCritical() << "type item not found";
+                QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 6+argIndex*3);
+                if (!nameItem)
+                    qCritical() << "name item not found";
+                Argument *arg = new Argument(checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 4+argIndex*3)),
+                                             typeItem->text(), nameItem->text());
+                productMethod->addArgument(arg, argIndex);
+            }
+
+            assert(productsMethods[productItemIndex].count() > productMethodIndex);
+            productsMethods[productItemIndex][productMethodIndex] = productMethod;
+        }
+    }
+
+    switch (exportType) {
+        case CLIPBOARD: {
+            QString text;
+            codeGenerator->genAbstractFactory(&text, pointerType, factories, products, productsMethods);
+            QApplication::clipboard()->setText(text);
+            break;
+        } case CPP_FILE: {
+            QString text;
+            codeGenerator->genAbstractFactory(&text, pointerType, factories, products, productsMethods);
+            const QString fileName = settings->value("Export/fileName").toString();
+            const QString folderPath = getExportFolderPath();
+            if (!writeTextToFile(folderPath + fileName + ".cpp", text))
+                success = false;
+            break;
+        } case H_AND_CPP_FILES:
+            QVector<ClassText *> classTexts;
+            codeGenerator->genAbstractFactory(&classTexts, pointerType, factories, products, productsMethods);
+            const QString folderPath = getExportFolderPath();
+            const int classTextsNum = classTexts.count();
+            for (int classTextIndex = 0; classTextIndex < classTextsNum; ++classTextIndex) {
+                if (!writeTextToFile(folderPath + classTexts[classTextIndex]->getFileName() + \
+                                     classTexts[classTextIndex]->getFileType(), classTexts[classTextIndex]->getText())) {
+                    success = false;
+                    continue;
+                }
+            }
+            qDeleteAll(classTexts);
+            break;
+    }
+
+    for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
+        qDeleteAll(productsMethods[productItemIndex]);
+    }
+    return success;
+}
+
+void MainWindow::on_pushBtnGenerate_clicked()
+{
+    const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
-    QString text = "";
+    const int exportType = settings->value("Export/type", CLIPBOARD).toInt();
+    if (exportType < CLIPBOARD or exportType > H_AND_CPP_FILES) {
+        qWarning() << "export type settings corrupted";
+        ui->statusBar->showMessage("export type settings corrupted", 5000);
+    }
+    bool success = false;
 
     switch (patternTypeIndex) {
         case NO_PATTERN:
-            break;
+            return;
         case SINGLETON: {
-            QLineEdit *lineEditSngltn = ui->centralwidget->findChild<QLineEdit *>("lineEditSngltn");
-            if (!lineEditSngltn)
-                qCritical() << "lineEditSngltn not found";
-            const QString className = lineEditSngltn->text();
-
-            text = codeGenerator->genSingleton(className);
+            success = generateSingleton(exportType);
             break;
         } case ABSTRACT_FACTORY: {
-            QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
-            if (!btnRawPointer)
-                qCritical() << "btnRawPointer not found";
-            QRadioButton *btnUniquePointer = ui->centralwidget->findChild<QRadioButton *>("btnUniquePointer");
-            if (!btnUniquePointer)
-                qCritical() << "btnUniquePointer not found";
-
-            enum POINTER_TYPE { RAW, UNIQUE, SHARED };
-
-            int pointerType = RAW;
-            if (btnUniquePointer->isChecked())
-                pointerType = UNIQUE;
-            else if (not btnRawPointer->isChecked())
-                pointerType = SHARED;
-
-            QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
-            if (!listOfFactories)
-                qCritical() << "listOfFactories not found";
-            QVector<QString> factories(listOfFactories->count());
-            const int factoriesNum = listOfFactories->count();
-            for (int factoryItemIndex = 0; factoryItemIndex < factoriesNum; ++factoryItemIndex) {
-                factories[factoryItemIndex] = listOfFactories->item(factoryItemIndex)->text();
-            }
-
-            QListWidget *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
-            if (!listOfFactories)
-                qCritical() << "listOfFactories not found";
-            QVector<QString> products(listOfProducts->count());
-            const int productsNum = listOfProducts->count();
-            for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
-                products[productItemIndex] = listOfProducts->item(productItemIndex)->text();
-            }
-
-            QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
-            if (!listOfProductsMethods)
-                qCritical() << "listOfProductsMethods not found";
-            QWidget *listOfProductsMethodsWidget = listOfProductsMethods->widget();
-            if (!listOfProductsMethodsWidget)
-                qCritical() << "listOfProductsMethods widget not found";
-            QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
-            if (!layoutProductsMethodsList)
-                qCritical() << "layoutProductsMethodsList not found";
-            QVector<QVector<ClassMethod *>> productsMethods(productsNum);
-
-            for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
-                QWidget *productMethodsContent = layoutProductsMethodsList->itemAt(productItemIndex)->widget();
-                QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
-                if (!productMethods)
-                    qCritical() << "productMethods not found";
-                QLayoutItem *tableProductMethodsItem = productMethods->itemAt(1); //0 - labels and buttons widget, 1 - table
-                if (!tableProductMethodsItem)
-                    qCritical() << "tableProductMethods item not found";
-                QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(tableProductMethodsItem->widget());
-                if (!tableProductMethods)
-                    qCritical() << "tableProductMethods not found";
-                const int productMethodsNum = tableProductMethods->rowCount();
-                assert(productsMethods.count() > productItemIndex);
-                productsMethods[productItemIndex].resize(productMethodsNum);
-
-                for (int productMethodIndex = 0; productMethodIndex < productMethodsNum; ++productMethodIndex) {
-                    const int argsNum = getProductMethodArgsNum(tableProductMethods->cellWidget(productMethodIndex, 0));
-                    const bool isConst = checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 1));
-                    QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 2);
-                    if (!typeItem)
-                        qCritical() << "type item not found";
-                    const QString type = typeItem->text();
-                    QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 3);
-                    if (!nameItem)
-                        qCritical() << "name item not found";
-                    const QString name = nameItem->text();
-                    ClassMethod *productMethod = new ClassMethod(isConst, type, name, argsNum);
-
-                    for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
-                        QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 5+argIndex*3);
-                        if (!typeItem)
-                            qCritical() << "type item not found";
-                        QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 6+argIndex*3);
-                        if (!nameItem)
-                            qCritical() << "name item not found";
-                        Argument *arg = new Argument(checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 4+argIndex*3)),
-                                                     typeItem->text(), nameItem->text());
-                        productMethod->addArgument(arg, argIndex);
-                    }
-
-                    assert(productsMethods[productItemIndex].count() > productMethodIndex);
-                    productsMethods[productItemIndex][productMethodIndex] = productMethod;
-                }
-            }
-
-            text = codeGenerator->genAbstractFactory(pointerType, factories, products, productsMethods);
-
-            for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
-                qDeleteAll(productsMethods[productItemIndex]);
-            }
+            success = generateAbstractFactory(exportType);
             break;
         } default:
             qWarning() << "Unexpected pattern type";
             break;
     }
 
-    QApplication::clipboard()->setText(text);
+    if (success)
+        statusBar()->showMessage("Code generated!", 5000);
 }
 
 void delWidgetsFromLayout(QLayout *layout) {
@@ -481,7 +599,7 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
 }
 
 void MainWindow::comboBox_indexChanged() {
-    const QString patternType = ui->comboBox->currentText();
+    const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
 
     clearGridLayout(ui->gridLayoutSpecial);
@@ -599,4 +717,9 @@ void MainWindow::comboBox_indexChanged() {
             qWarning() << "Unexpected pattern type";
             break;
     }
+}
+
+void MainWindow::on_actionExport_to_triggered() {
+    ExportWindow *exportWindow = new ExportWindow(this, settings);
+    exportWindow->exec();
 }
