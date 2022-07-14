@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/icons">
         <file>images/export.png</file>
+        <file>images/not_ok.png</file>
+        <file>images/ok.png</file>
     </qresource>
 </RCC>

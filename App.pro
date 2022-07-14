@@ -21,6 +21,8 @@ SOURCES += \
     classtext.cpp \
     codegenerator.cpp \
     exportwindow.cpp \
+    importwindow.cpp \
+    indicator.cpp \
     main.cpp \
     mainwindow.cpp
 
@@ -30,10 +32,13 @@ HEADERS += \
     classtext.h \
     codegenerator.h \
     exportwindow.h \
+    importwindow.h \
+    indicator.h \
     mainwindow.h
 
 FORMS += \
     exportwindow.ui \
+    importwindow.ui \
     mainwindow.ui
 
 # Default rules for deployment.

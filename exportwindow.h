@@ -32,7 +32,7 @@ private:
     void readSettings();
     void writeSettings();
 
-    enum { CLIPBOARD, CPP_FILE, H_AND_CPP_FILES };
+    enum EXPORT_TYPE { CLIPBOARD, CPP_FILE, H_AND_CPP_FILES };
 
 };
 

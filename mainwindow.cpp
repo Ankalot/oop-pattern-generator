@@ -5,6 +5,7 @@
 #include "classtext.h"
 #include "argument.h"
 #include "exportwindow.h"
+#include "importwindow.h"
 
 #include <cassert>
 #include <QCheckBox>
@@ -286,8 +287,8 @@ bool MainWindow::generateAbstractFactory(int exportType) {
 
 void MainWindow::on_pushBtnGenerate_clicked()
 {
-    const QString patternType = ui->cmbBoxPatternName->currentText();
-    const int patternTypeIndex = patternTypesList->indexOf(patternType);
+    const QString patternTypeName = ui->cmbBoxPatternName->currentText();
+    const int patternType = patternTypesList->indexOf(patternTypeName);
     const int exportType = settings->value("Export/type", CLIPBOARD).toInt();
     if (exportType < CLIPBOARD or exportType > H_AND_CPP_FILES) {
         qWarning() << "export type settings corrupted";
@@ -295,7 +296,7 @@ void MainWindow::on_pushBtnGenerate_clicked()
     }
     bool success = false;
 
-    switch (patternTypeIndex) {
+    switch (patternType) {
         case NO_PATTERN:
             return;
         case SINGLETON: {
@@ -599,6 +600,8 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
 }
 
 void MainWindow::comboBox_indexChanged() {
+    ui->pushBtnGenerate->setEnabled(not ui->checkBoxImport->isChecked());
+
     const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
 
@@ -719,7 +722,26 @@ void MainWindow::comboBox_indexChanged() {
     }
 }
 
-void MainWindow::on_actionExport_to_triggered() {
+void MainWindow::on_actionExport_triggered() {
     ExportWindow *exportWindow = new ExportWindow(this, settings);
     exportWindow->exec();
+}
+
+void MainWindow::on_checkBoxImport_clicked(bool checked)
+{
+    ui->pushBtnImport->setEnabled(checked);
+    ui->pushBtnGenerate->setEnabled(not checked);
+}
+
+void MainWindow::importAccepted(const QHash<QString, QStringList> &importData) {
+    this->importData = importData;
+    ui->pushBtnGenerate->setEnabled(true);
+}
+
+void MainWindow::on_pushBtnImport_clicked()
+{
+    const QString patternTypeName = ui->cmbBoxPatternName->currentText();
+    const int patternType = patternTypesList->indexOf(patternTypeName);
+    ImportWindow *importWindow = new ImportWindow(this, patternType);
+    importWindow->exec();
 }

@@ -35,12 +35,19 @@ private slots:
 
     void changeProductNameInTable(QListWidgetItem *productNameItem);
 
-    void on_actionExport_to_triggered();
+    void on_actionExport_triggered();
+
+    void on_checkBoxImport_clicked(bool checked);
+
+    void on_pushBtnImport_clicked();
+
+    void importAccepted(const QHash<QString, QStringList> &data);
 
 private:
     Ui::MainWindow *ui;
     CodeGenerator *codeGenerator;
     QSettings *settings;
+    QHash<QString, QStringList> importData;
 
     void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
