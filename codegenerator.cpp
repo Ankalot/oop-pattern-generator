@@ -1,5 +1,4 @@
 #include "codegenerator.h"
-#include "classmethod.h"
 #include "classtext.h"
 #include "argument.h"
 
@@ -62,14 +61,14 @@ void %2::printCurrentAddress() {\n\
 }\n").arg(className.toLower()).arg(className);
 }
 
-QString makeProductArgText(Argument *argument) {
+QString makeProductArgText(Argument<QString> *argument) {
     QString constText = "";
     if (argument->constFlag())
         constText = "const ";
     return constText + argument->getType() + " " + argument->getName();
 }
 
-QString makeProductMethodsText(QVector<ClassMethod *> &productMethods, const QString &s1, const QString &s2, const QString &s3) {
+QString makeProductMethodsText(QVector<ClassMethod<QString> *> &productMethods, const QString &s1, const QString &s2, const QString &s3) {
     QString productMethodsText = "";
     const int productMethodsNum = productMethods.count();
     for (int methodIndex = 0; methodIndex < productMethodsNum; ++methodIndex) {
@@ -91,7 +90,7 @@ QString makeProductMethodsText(QVector<ClassMethod *> &productMethods, const QSt
     return productMethodsText;
 }
 
-QString makeProductsText(QVector<QVector<ClassMethod *>> &productsMethods, QVector<QString> &products, QVector<QString> &factories) {
+QString makeProductsText(QVector<QVector<ClassMethod<QString> *>> &productsMethods, QVector<QString> &products, QVector<QString> &factories) {
     QString productsText = "";
     const int productsNum = products.count();
     for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
@@ -216,7 +215,7 @@ void initClassText(QVector<ClassText *> *classTexts, int *classTextCounter, cons
 }
 
 void CodeGenerator::genAbstractFactory(QString *text, const int &pointerType, QVector<QString> &factories,
-                                       QVector<QString> &products, QVector<QVector<ClassMethod *>> &productsMethods) const {
+                                       QVector<QString> &products, QVector<QVector<ClassMethod<QString> *>> &productsMethods) const {
     const QString productsText = makeProductsText(productsMethods, products, factories);
     const QString factoriesText = makeFactoriesText(products, factories, pointerType);
     *text = productsText + factoriesText;
@@ -224,7 +223,7 @@ void CodeGenerator::genAbstractFactory(QString *text, const int &pointerType, QV
 
 void CodeGenerator::genAbstractFactoryProductsClassesHandCpp(QVector<ClassText *> *classTexts,
                                                              QVector<QString> &factories, QVector<QString> &products,
-                                                             QVector<QVector<ClassMethod *>> &productsMethods,
+                                                             QVector<QVector<ClassMethod<QString> *>> &productsMethods,
                                                              const int &productsNum, const int &factoriesNum,
                                                              int *classTextCounter) const {
     for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
@@ -345,7 +344,7 @@ public:\n\
 }
 
 void CodeGenerator::genAbstractFactory(QVector<ClassText *> *classTexts, const int &pointerType, QVector<QString> &factories,
-                                       QVector<QString> &products, QVector<QVector<ClassMethod *>> &productsMethods) const {
+                                       QVector<QString> &products, QVector<QVector<ClassMethod<QString> *>> &productsMethods) const {
     const int productsNum = products.count();
     const int factoriesNum = factories.count();
     const int classTextNum = productsNum + productsNum*factoriesNum*2 + 1 + factoriesNum*2;

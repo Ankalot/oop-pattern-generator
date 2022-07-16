@@ -8,6 +8,9 @@
 #include <QSettings>
 
 class CodeGenerator;
+class ClassText;
+class ParsedElements;
+class Element;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -48,6 +51,8 @@ private:
     CodeGenerator *codeGenerator;
     QSettings *settings;
     QHash<QString, QStringList> importData;
+    QHash<QString, QVector<ClassText *>> parseData;
+    ParsedElements *parsedPattern = nullptr;
 
     void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
@@ -58,6 +63,16 @@ private:
 
     bool generateSingleton(int exportType);
     bool generateAbstractFactory(int exportType);
+
+    bool makeParseData();
+    bool parseSingleton();
+    bool parseAbstractFactory();
+
+    void initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className);
+    void writeParsedSingletonToUi();
+    void writeParsedAbstractFactoryToUi();
+    void writeUiToParsedSingleton();
+    void writeUiToParsedAbstractFactory();
 
     QString getExportFolderPath();
     bool writeTextToFile(const QString &fileFullName, const QString &text);

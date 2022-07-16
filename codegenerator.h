@@ -2,8 +2,8 @@
 #define CODEGENERATOR_H
 
 #include <QString>
+#include "classmethod.h"
 
-class ClassMethod;
 class ClassText;
 
 QT_BEGIN_NAMESPACE
@@ -21,10 +21,10 @@ public:
 
     // .cpp
     void genAbstractFactory(QString *text, const int &pointerType, QVector<QString> &factories, QVector<QString> &products,
-                            QVector<QVector<ClassMethod *>> &productsMethods) const;
+                            QVector<QVector<ClassMethod<QString> *>> &productsMethods) const;
     // .h and .cpp for each class
     void genAbstractFactory(QVector<ClassText *> *classTexts, const int &pointerType, QVector<QString> &factories, QVector<QString> &products,
-                            QVector<QVector<ClassMethod *>> &productsMethods) const;
+                            QVector<QVector<ClassMethod<QString> *>> &productsMethods) const;
 
 private:
     bool includeGuard;
@@ -32,7 +32,7 @@ private:
     QString includeGuardText2;
 
     void genAbstractFactoryProductsClassesHandCpp(QVector<ClassText *> *classTexts, QVector<QString> &factories, QVector<QString> &products,
-                                                  QVector<QVector<ClassMethod *>> &productsMethods,
+                                                  QVector<QVector<ClassMethod<QString> *>> &productsMethods,
                                                   const int &productsNum, const int &factoriesNum, int *classTextCounter) const;
     void genAbstractFactoryFactoriesClassesHandCpp(QVector<ClassText *> *classTexts, QVector<QString> &factories,
                                                    QVector<QString> &products, const int &pointerType,

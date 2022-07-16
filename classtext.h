@@ -4,7 +4,7 @@
 #include <QString>
 
 QT_BEGIN_NAMESPACE
-namespace PatternGenerator { class ClassMethod; }
+namespace PatternGenerator { class ClassText; }
 QT_END_NAMESPACE
 
 class ClassText {

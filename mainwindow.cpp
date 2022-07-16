@@ -6,6 +6,8 @@
 #include "argument.h"
 #include "exportwindow.h"
 #include "importwindow.h"
+#include "parsedelements.h"
+#include "element.h"
 
 #include <cassert>
 #include <QCheckBox>
@@ -58,13 +60,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     settings = new QSettings("OOP-P-G", "Main settings");
     readSettings();
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-    delete codeGenerator;
-    delete settings;
 }
 
 int getProductMethodArgsNum(QWidget *spinBoxNumArgsContent) {
@@ -141,8 +136,7 @@ bool MainWindow::generateSingleton(int exportType) {
             codeGenerator->genSingleton(&text, className);
             const QString fileName = settings->value("Export/fileName").toString();
             const QString folderPath = getExportFolderPath();
-            if (!writeTextToFile(folderPath + fileName + ".cpp", text))
-                return false;
+            return writeTextToFile(folderPath + fileName + ".cpp", text);
             break;
         } case H_AND_CPP_FILES:
             QString text1, text2;
@@ -202,7 +196,7 @@ bool MainWindow::generateAbstractFactory(int exportType) {
     QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
     if (!layoutProductsMethodsList)
         qCritical() << "layoutProductsMethodsList not found";
-    QVector<QVector<ClassMethod *>> productsMethods(productsNum);
+    QVector<QVector<ClassMethod<QString> *>> productsMethods(productsNum);
 
     for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
         QWidget *productMethodsContent = layoutProductsMethodsList->itemAt(productItemIndex)->widget();
@@ -230,7 +224,7 @@ bool MainWindow::generateAbstractFactory(int exportType) {
             if (!nameItem)
                 qCritical() << "name item not found";
             const QString name = nameItem->text();
-            ClassMethod *productMethod = new ClassMethod(isConst, type, name, argsNum);
+            ClassMethod<QString> *productMethod = new ClassMethod<QString>(isConst, type, name, argsNum);
 
             for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
                 QTableWidgetItem *typeItem = tableProductMethods->item(productMethodIndex, 5+argIndex*3);
@@ -239,7 +233,7 @@ bool MainWindow::generateAbstractFactory(int exportType) {
                 QTableWidgetItem *nameItem = tableProductMethods->item(productMethodIndex, 6+argIndex*3);
                 if (!nameItem)
                     qCritical() << "name item not found";
-                Argument *arg = new Argument(checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 4+argIndex*3)),
+                Argument<QString> *arg = new Argument<QString>(checkCheckBoxConst(tableProductMethods->cellWidget(productMethodIndex, 4+argIndex*3)),
                                              typeItem->text(), nameItem->text());
                 productMethod->addArgument(arg, argIndex);
             }
@@ -285,6 +279,32 @@ bool MainWindow::generateAbstractFactory(int exportType) {
     return success;
 }
 
+void MainWindow::initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className) {
+    QLayoutItem *lineEditSngltItem = ui->gridLayoutSpecial->itemAtPosition(0, 1);
+    if (!lineEditSngltItem)
+        qCritical() << "lineEditSnglt item not found";
+    *lineEditSnglt = qobject_cast<QLineEdit *>(lineEditSngltItem->widget());
+    if (!lineEditSnglt)
+        qCritical() << "lineEditSnglt item not found";
+    BaseElement *classNameBase = parsedPattern->getElements().value("className");
+    if (!classNameBase)
+        qCritical() << "className key in parsedPattern not found";
+    *className = static_cast<Element *>(classNameBase);
+    if (!className)
+        qCritical() << "className element not found in parsedPattern";
+}
+
+void MainWindow::writeUiToParsedSingleton() {
+    QLineEdit *lineEditSnglt = nullptr;
+    Element *className = nullptr;
+    initParsedSingletonAndUi(&lineEditSnglt, &className);
+    className->setText(lineEditSnglt->text());
+}
+
+void MainWindow::writeUiToParsedAbstractFactory() {
+    //coming soon
+}
+
 void MainWindow::on_pushBtnGenerate_clicked()
 {
     const QString patternTypeName = ui->cmbBoxPatternName->currentText();
@@ -300,10 +320,18 @@ void MainWindow::on_pushBtnGenerate_clicked()
         case NO_PATTERN:
             return;
         case SINGLETON: {
-            success = generateSingleton(exportType);
+            if (ui->checkBoxImport->isChecked()) {
+                writeUiToParsedSingleton();
+                success = parsedPattern->rewriteInFiles();
+            } else
+                success = generateSingleton(exportType);
             break;
         } case ABSTRACT_FACTORY: {
-            success = generateAbstractFactory(exportType);
+            if (ui->checkBoxImport->isEnabled()) {
+                writeUiToParsedAbstractFactory();
+                success = parsedPattern->rewriteInFiles();
+            } else
+                success = generateAbstractFactory(exportType);
             break;
         } default:
             qWarning() << "Unexpected pattern type";
@@ -599,8 +627,18 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
     labelProductMethods->setText(productNameItem->text() + " methods:");
 }
 
+void clearParseData(QHash<QString, QVector<ClassText *>> *parseData) {
+    foreach (QVector<ClassText *> classTexts, *parseData) {
+        qDeleteAll(classTexts);
+    }
+    parseData->clear();
+}
+
 void MainWindow::comboBox_indexChanged() {
     ui->pushBtnGenerate->setEnabled(not ui->checkBoxImport->isChecked());
+    clearParseData(&parseData);
+    delete parsedPattern;
+    parsedPattern = nullptr;
 
     const QString patternType = ui->cmbBoxPatternName->currentText();
     const int patternTypeIndex = patternTypesList->indexOf(patternType);
@@ -608,10 +646,10 @@ void MainWindow::comboBox_indexChanged() {
     clearGridLayout(ui->gridLayoutSpecial);
 
     switch (patternTypeIndex) {
-        case 0:
+        case NO_PATTERN:
             ui->gridLayoutSpecial->setRowStretch(0, 1);
             break;
-        case 1: {
+        case SINGLETON: {
             QLabel *labelSngltn = new QLabel("Enter class name:");
             QLineEdit *lineEditSngltn = new QLineEdit;
 
@@ -626,7 +664,7 @@ void MainWindow::comboBox_indexChanged() {
 
             ui->gridLayoutSpecial->setRowStretch(1, 1);
             break;
-        } case 2: {
+        } case ABSTRACT_FACTORY: {
             QGridLayout *gridLayoutSpecial1 = new QGridLayout;
 
             QGridLayout *gridLayoutSpecial11 = new QGridLayout;
@@ -727,6 +765,70 @@ void MainWindow::on_actionExport_triggered() {
     exportWindow->exec();
 }
 
+bool MainWindow::makeParseData() {
+    QHashIterator<QString, QStringList> i(importData);
+    while (i.hasNext()) {
+        i.next();
+        const QStringList fileNamesList = i.value();
+        QVector<ClassText *> classTexts;
+        const int fileNamesNum = fileNamesList.count();
+        classTexts.resize(fileNamesNum);
+        for (int fileNameIndex = 0; fileNameIndex < fileNamesNum; ++fileNameIndex) {
+            QString text;
+            const QString fileName = fileNamesList[fileNameIndex];
+            QFile file(fileName);
+            if (!file.open(QIODevice::ReadOnly)) {
+                qWarning() << "Can't open file " + fileName;
+                ui->statusBar->showMessage("Can't open file: " + fileName, 5000);
+                return false;
+            }
+            QTextStream stream(&file);
+            QString fileType;
+            if (fileName[fileName.length()-1] == "h")
+                fileType = ".h";
+            else
+                fileType = ".cpp";
+            classTexts[fileNameIndex] = new ClassText(fileName, stream.readAll(), fileType);
+            file.close();
+        }
+        parseData.insert(i.key(), classTexts);
+    }
+    return true;
+}
+
+void MainWindow::writeParsedSingletonToUi() {
+    QLineEdit *lineEditSnglt = nullptr;
+    Element *className = nullptr;
+    initParsedSingletonAndUi(&lineEditSnglt, &className);
+    lineEditSnglt->setText(className->getText());
+}
+
+bool MainWindow::parseSingleton() {
+    if (!makeParseData())
+        return false;
+    ParsedElements *parsedSingleton = new ParsedElements(SINGLETON, parseData);
+    if (!parsedSingleton->isOk())
+        return false;
+    parsedPattern = parsedSingleton;
+    writeParsedSingletonToUi();
+    return true;
+}
+
+void MainWindow::writeParsedAbstractFactoryToUi() {
+    //coming soon
+}
+
+bool MainWindow::parseAbstractFactory() {
+    if (!makeParseData())
+        return false;
+    ParsedElements *parsedAbstractFactory = new ParsedElements(ABSTRACT_FACTORY, parseData);
+    if (!parsedAbstractFactory->isOk())
+        return false;
+    parsedPattern = parsedAbstractFactory;
+    writeParsedAbstractFactoryToUi();
+    return true;
+}
+
 void MainWindow::on_checkBoxImport_clicked(bool checked)
 {
     ui->pushBtnImport->setEnabled(checked);
@@ -734,8 +836,40 @@ void MainWindow::on_checkBoxImport_clicked(bool checked)
 }
 
 void MainWindow::importAccepted(const QHash<QString, QStringList> &importData) {
+    /*
+     * 1) I get QHash<QString, QStringList> importData
+     * 2) From it I make QHash<QString, QVector<ClassText *>> parseData
+     * 3) From it I make ParsedElements *parsedPattern
+     * 4) Change UI using data from parsedPattern
+     * 5) If needed I disable some buttons in UI
+     * 6) When the generate button is pressed, the data is overwritten from UI to parsedPattern
+     *      and then from parsedPattern to files
+     *
+     * (I don't change filenames)
+     *
+    */
+
     this->importData = importData;
-    ui->pushBtnGenerate->setEnabled(true);
+    const QString patternTypeName = ui->cmbBoxPatternName->currentText();
+    const int patternType = patternTypesList->indexOf(patternTypeName);
+    bool success = false;
+
+    switch (patternType) {
+        case NO_PATTERN:
+            break;
+        case SINGLETON:
+            success = parseSingleton();
+            break;
+        case ABSTRACT_FACTORY:
+            success = parseAbstractFactory();
+            break;
+        default:
+            qWarning() << "Unexpected pattern type";
+            break;
+    }
+
+    if (success)
+        ui->pushBtnGenerate->setEnabled(true);
 }
 
 void MainWindow::on_pushBtnImport_clicked()
@@ -744,4 +878,13 @@ void MainWindow::on_pushBtnImport_clicked()
     const int patternType = patternTypesList->indexOf(patternTypeName);
     ImportWindow *importWindow = new ImportWindow(this, patternType);
     importWindow->exec();
+}
+
+MainWindow::~MainWindow()
+{
+    clearParseData(&parseData);
+    delete parsedPattern;
+    delete ui;
+    delete codeGenerator;
+    delete settings;
 }

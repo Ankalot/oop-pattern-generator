@@ -16,25 +16,33 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    argument.cpp \
-    classmethod.cpp \
+    baseelement.cpp \
     classtext.cpp \
     codegenerator.cpp \
+    element.cpp \
     exportwindow.cpp \
     importwindow.cpp \
     indicator.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    parsedelements.cpp \
+    productselement.cpp \
+    vectorelement.cpp
 
 HEADERS += \
     argument.h \
+    baseelement.h \
     classmethod.h \
     classtext.h \
     codegenerator.h \
+    element.h \
     exportwindow.h \
     importwindow.h \
     indicator.h \
-    mainwindow.h
+    mainwindow.h \
+    parsedelements.h \
+    productselement.h \
+    vectorelement.h
 
 FORMS += \
     exportwindow.ui \
