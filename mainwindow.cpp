@@ -153,7 +153,7 @@ bool MainWindow::generateSingleton(int exportType) {
 }
 
 bool MainWindow::generateAbstractFactory(int exportType) {
-    bool success = true;;
+    bool success = true;
     QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
     if (!btnRawPointer)
         qCritical() << "btnRawPointer not found";
@@ -168,6 +168,11 @@ bool MainWindow::generateAbstractFactory(int exportType) {
         pointerType = UNIQUE;
     else if (not btnRawPointer->isChecked())
         pointerType = SHARED;
+
+    QLineEdit *lineEditFactoryName = ui->centralwidget->findChild<QLineEdit *>("lineEditFactoryName");
+    if (!lineEditFactoryName)
+        qCritical() << "lineEditFactoryName not found";
+    const QString abstractFactoryName = lineEditFactoryName->text();
 
     QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
     if (!listOfFactories)
@@ -246,12 +251,12 @@ bool MainWindow::generateAbstractFactory(int exportType) {
     switch (exportType) {
         case CLIPBOARD: {
             QString text;
-            codeGenerator->genAbstractFactory(&text, pointerType, factories, products, productsMethods);
+            codeGenerator->genAbstractFactory(&text, pointerType, abstractFactoryName, factories, products, productsMethods);
             QApplication::clipboard()->setText(text);
             break;
         } case CPP_FILE: {
             QString text;
-            codeGenerator->genAbstractFactory(&text, pointerType, factories, products, productsMethods);
+            codeGenerator->genAbstractFactory(&text, pointerType, abstractFactoryName, factories, products, productsMethods);
             const QString fileName = settings->value("Export/fileName").toString();
             const QString folderPath = getExportFolderPath();
             if (!writeTextToFile(folderPath + fileName + ".cpp", text))
@@ -259,7 +264,7 @@ bool MainWindow::generateAbstractFactory(int exportType) {
             break;
         } case H_AND_CPP_FILES:
             QVector<ClassText *> classTexts;
-            codeGenerator->genAbstractFactory(&classTexts, pointerType, factories, products, productsMethods);
+            codeGenerator->genAbstractFactory(&classTexts, pointerType, abstractFactoryName, factories, products, productsMethods);
             const QString folderPath = getExportFolderPath();
             const int classTextsNum = classTexts.count();
             for (int classTextIndex = 0; classTextIndex < classTextsNum; ++classTextIndex) {
@@ -327,7 +332,7 @@ void MainWindow::on_pushBtnGenerate_clicked()
                 success = generateSingleton(exportType);
             break;
         } case ABSTRACT_FACTORY: {
-            if (ui->checkBoxImport->isEnabled()) {
+            if (ui->checkBoxImport->isChecked()) {
                 writeUiToParsedAbstractFactory();
                 success = parsedPattern->rewriteInFiles();
             } else
@@ -673,7 +678,11 @@ void MainWindow::comboBox_indexChanged() {
             QLabel *labelNumFactories = new QLabel("Enter num of factories:");
             QLabel *labelNumProducts = new QLabel("Enter num of products:");
 
-            QGridLayout *gridLayoutSpecial12 = new QGridLayout;
+            QVBoxLayout *ptrTypeAndFactoryNameLayout = new QVBoxLayout;
+            QHBoxLayout *factoryNameLayout = new QHBoxLayout;
+            QLabel *lblFactoryName = new QLabel("Abstract factory name:");
+            QLineEdit *lineEditFactoryName = new QLineEdit;
+            QHBoxLayout *ptrTypeLayout = new QHBoxLayout;
             QRadioButton *btnRawPointer = new QRadioButton("raw pointer");
             QRadioButton *btnUniquePointer = new QRadioButton("unique pointer");
             QRadioButton *btnSharedPointer = new QRadioButton("shared pointer");
@@ -701,7 +710,10 @@ void MainWindow::comboBox_indexChanged() {
             labelNumProducts->setMinimumSize(260, 40);
             labelNumProducts->setFont(QFont("MS Shell Dlg 2", 14));
 
-            gridLayoutSpecial12->setContentsMargins(20, 0, 0, 0);
+            ptrTypeAndFactoryNameLayout->setContentsMargins(20, 0, 0, 0);
+            lblFactoryName->setFont(QFont("MS Shell Dlg 2", 14));
+            lineEditFactoryName->setFont(QFont("MS Shell Dlg 2", 14));
+            lineEditFactoryName->setObjectName("lineEditFactoryName");
             btnRawPointer->setFont(QFont("MS Shell Dlg 2", 14));
             btnRawPointer->setChecked(true);
             btnRawPointer->setObjectName("btnRawPointer");
@@ -732,14 +744,18 @@ void MainWindow::comboBox_indexChanged() {
 
             ui->gridLayoutSpecial->addLayout(gridLayoutSpecial1, 0, 0);
             gridLayoutSpecial1->addLayout(gridLayoutSpecial11, 0, 0);
-            gridLayoutSpecial1->addLayout(gridLayoutSpecial12, 0, 2);
+            gridLayoutSpecial1->addLayout(ptrTypeAndFactoryNameLayout, 0, 2);
             gridLayoutSpecial11->addWidget(labelNumFactories, 0, 0);
             gridLayoutSpecial11->addWidget(spinBoxNumFactories, 0, 1);
             gridLayoutSpecial11->addWidget(labelNumProducts, 1, 0);
             gridLayoutSpecial11->addWidget(spinBoxNumProducts, 1, 1);
-            gridLayoutSpecial12->addWidget(btnRawPointer, 0, 0);
-            gridLayoutSpecial12->addWidget(btnUniquePointer, 0, 1);
-            gridLayoutSpecial12->addWidget(btnSharedPointer, 0, 2);
+            ptrTypeAndFactoryNameLayout->addLayout(factoryNameLayout);
+            factoryNameLayout->addWidget(lblFactoryName);
+            factoryNameLayout->addWidget(lineEditFactoryName);
+            ptrTypeAndFactoryNameLayout->addLayout(ptrTypeLayout);
+            ptrTypeLayout->addWidget(btnRawPointer);
+            ptrTypeLayout->addWidget(btnUniquePointer);
+            ptrTypeLayout->addWidget(btnSharedPointer);
             ui->gridLayoutSpecial->addLayout(gridLayoutSpecial2, 1, 0);
             gridLayoutSpecial2->addWidget(listOfFactories, 0, 0);
             gridLayoutSpecial2->addWidget(listOfProducts, 0, 1);
