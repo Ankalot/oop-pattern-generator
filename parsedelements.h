@@ -28,6 +28,7 @@ private:
     QHash<QString, QVector<ClassText *>> parseData;
     QHash<QString, BaseElement *> elements;
 
+    bool writeElementsToFile(ClassText *classText);
     bool rewriteSingletonInFiles();
     bool rewriteAbstractFactoryInFiles();
 

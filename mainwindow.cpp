@@ -8,6 +8,7 @@
 #include "importwindow.h"
 #include "parsedelements.h"
 #include "element.h"
+#include "vectorelement.h"
 
 #include <cassert>
 #include <QCheckBox>
@@ -289,13 +290,13 @@ void MainWindow::initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **c
     if (!lineEditSngltItem)
         qCritical() << "lineEditSnglt item not found";
     *lineEditSnglt = qobject_cast<QLineEdit *>(lineEditSngltItem->widget());
-    if (!lineEditSnglt)
+    if (!*lineEditSnglt)
         qCritical() << "lineEditSnglt item not found";
     BaseElement *classNameBase = parsedPattern->getElements().value("className");
     if (!classNameBase)
-        qCritical() << "className key in parsedPattern not found";
+        qCritical() << "className key not found in parsedPattern";
     *className = static_cast<Element *>(classNameBase);
-    if (!className)
+    if (!*className)
         qCritical() << "className element not found in parsedPattern";
 }
 
@@ -306,8 +307,64 @@ void MainWindow::writeUiToParsedSingleton() {
     className->setText(lineEditSnglt->text());
 }
 
-void MainWindow::writeUiToParsedAbstractFactory() {
+void MainWindow::initParsedAbstractFactoryAndUi(QSpinBox **spinBoxNumFactories, QSpinBox **spinBoxNumProducts,
+                                                QLineEdit **lineEditFactoryName, QListWidget **listOfFactories,
+                                                QListWidget **listOfProducts, Element **abstractFactoryName,
+                                                VectorElement **factoriesNames, VectorElement **productsNames) {
+    *spinBoxNumFactories = ui->centralwidget->findChild<QSpinBox *>("spinBoxNumFactories");
+    if (!spinBoxNumFactories)
+        qCritical() << "spinBoxNumFactories not found";
+    *spinBoxNumProducts = ui->centralwidget->findChild<QSpinBox *>("spinBoxNumProducts");
+    if (!spinBoxNumProducts)
+        qCritical() << "spinBoxNumProducts not found";
+    *lineEditFactoryName = ui->centralwidget->findChild<QLineEdit *>("lineEditFactoryName");
+    if (!*lineEditFactoryName)
+        qCritical() << "lineEditFactoryName not found";
+    *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
+    if (!*listOfFactories)
+        qCritical() << "listOfFactories not found";
+    *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
+    if (!*listOfProducts)
+        qCritical() << "listOfProducts not found";
+
+    BaseElement *abstractFactoryNameBase = parsedPattern->getElements().value("abstractFactoryName");
+    if (!abstractFactoryNameBase)
+        qCritical() << "abstractFactoryName key not found in parsedPattern";
+    *abstractFactoryName = static_cast<Element *>(abstractFactoryNameBase);
+    if (!*abstractFactoryName)
+        qCritical() << "abstractFactoryName element not found in parsedPattern";
+    BaseElement *factoriesNamesBase = parsedPattern->getElements().value("factoriesNames");
+    if (!factoriesNamesBase)
+        qCritical() << "factoriesNames key not found in parsedPattern";
+    *factoriesNames = static_cast<VectorElement *>(factoriesNamesBase);
+    if (!*factoriesNames)
+        qCritical() << "factoriesNames VectorElement not found in parsedPattern";
+    BaseElement *productsNamesBase = parsedPattern->getElements().value("productsNames");
+    if (!productsNamesBase)
+        qCritical() << "productsNames key not found in parsedPattern";
+    *productsNames = static_cast<VectorElement *>(productsNamesBase);
+    if (!*productsNames)
+        qCritical() << "productsNames VectorElement not found in parsedPattern";
+
     //coming soon
+}
+
+void MainWindow::writeUiToParsedAbstractFactory() {
+    QLineEdit *lineEditFactoryName = nullptr;
+    QSpinBox *spinBoxNumFactories = nullptr, *spinBoxNumProducts = nullptr;
+    QListWidget *listOfFactories = nullptr, *listOfProducts = nullptr;
+    Element *abstractFactoryName = nullptr;
+    VectorElement *factoriesNames = nullptr, *productsNames = nullptr;
+    initParsedAbstractFactoryAndUi(&spinBoxNumFactories, &spinBoxNumProducts,
+                                   &lineEditFactoryName, &listOfFactories, &listOfProducts,
+                                   &abstractFactoryName, &factoriesNames, &productsNames);
+    abstractFactoryName->setText(lineEditFactoryName->text());
+    const int factoriesNum = listOfFactories->count();
+    const int productsNum = listOfProducts->count();
+    for (int i = 0; i < factoriesNum; ++i)
+        (*factoriesNames)[i]->setText(listOfFactories->item(i)->text());
+    for (int i = 0; i < productsNum; ++i)
+        (*productsNames)[i]->setText(listOfProducts->item(i)->text());
 }
 
 void MainWindow::on_pushBtnGenerate_clicked()
@@ -701,10 +758,12 @@ void MainWindow::comboBox_indexChanged() {
             spinBoxNumFactories->setFont(QFont("MS Shell Dlg 2", 14));
             spinBoxNumFactories->setMinimum(1);
             spinBoxNumFactories->setMaximum(99);
+            spinBoxNumFactories->setObjectName("spinBoxNumFactories");
             spinBoxNumProducts->setFixedSize(80, 40);
             spinBoxNumProducts->setFont(QFont("MS Shell Dlg 2", 14));
             spinBoxNumProducts->setMinimum(1);
             spinBoxNumProducts->setMaximum(99);
+            spinBoxNumProducts->setObjectName("spinBoxNumProducts");
             labelNumFactories->setMinimumSize(260, 40);
             labelNumFactories->setFont(QFont("MS Shell Dlg 2", 14));
             labelNumProducts->setMinimumSize(260, 40);
@@ -830,8 +889,58 @@ bool MainWindow::parseSingleton() {
     return true;
 }
 
-void MainWindow::writeParsedAbstractFactoryToUi() {
+void MainWindow::freezeSomeAbstractFactoryUI(bool freeze) {
+    QSpinBox *spinBoxNumFactories = ui->centralwidget->findChild<QSpinBox *>("spinBoxNumFactories");
+    spinBoxNumFactories->setEnabled(!freeze);
+    QSpinBox *spinBoxNumProducts = ui->centralwidget->findChild<QSpinBox *>("spinBoxNumProducts");
+    spinBoxNumProducts->setEnabled(!freeze);
+
+    QRadioButton *btnRawPointer = ui->centralwidget->findChild<QRadioButton *>("btnRawPointer");
+    btnRawPointer->setEnabled(!freeze);
+    QRadioButton *btnUniquePointer = ui->centralwidget->findChild<QRadioButton *>("btnUniquePointer");
+    btnUniquePointer->setEnabled(!freeze);
+    QRadioButton *btnSharedPointer = ui->centralwidget->findChild<QRadioButton *>("btnSharedPointer");
+    btnSharedPointer->setEnabled(!freeze);
+
+    QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
+    if (!listOfProductsMethods)
+        qCritical() << "listOfProductsMethods not found";
+    QWidget *contentOfListOfProductsMethods = listOfProductsMethods->widget();
+    QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(contentOfListOfProductsMethods->layout());
+    if (!layoutProductsMethodsList)
+        qCritical() << "layoutProductsMethodsList not found";
+    const int productsMethodsNum = layoutProductsMethodsList->count();
+    for (int productsMethodsIndex = 0; productsMethodsIndex < productsMethodsNum; ++productsMethodsIndex) {
+        layoutProductsMethodsList->itemAt(productsMethodsIndex)->widget()->setEnabled(!freeze);
+    }
+
     //coming soon
+}
+
+void MainWindow::writeParsedAbstractFactoryToUi() {
+    QLineEdit *lineEditFactoryName = nullptr;
+    QSpinBox *spinBoxNumFactories = nullptr, *spinBoxNumProducts = nullptr;
+    QListWidget *listOfFactories = nullptr, *listOfProducts = nullptr;
+    Element *abstractFactoryName = nullptr;
+    VectorElement *factoriesNames = nullptr, *productsNames = nullptr;
+    initParsedAbstractFactoryAndUi(&spinBoxNumFactories, &spinBoxNumProducts,
+                                   &lineEditFactoryName, &listOfFactories, &listOfProducts,
+                                   &abstractFactoryName, &factoriesNames, &productsNames);
+    lineEditFactoryName->setText(abstractFactoryName->getText());
+    const int factoriesNum = factoriesNames->getCount();
+    spinBoxNumFactories->setValue(factoriesNum);
+    const int productsNum = productsNames->getCount();
+    spinBoxNumProducts->setValue(productsNum);
+    for (int i = 0; i < factoriesNum; ++i)
+        listOfFactories->item(i)->setText((*factoriesNames)[i]->getText());
+    for (int i = 0; i < productsNum; ++i) {
+        listOfProducts->setCurrentRow(i);
+        listOfProducts->item(i)->setText((*productsNames)[i]->getText());
+    }
+
+    //coming soon
+
+    freezeSomeAbstractFactoryUI(true);
 }
 
 bool MainWindow::parseAbstractFactory() {
@@ -849,6 +958,8 @@ void MainWindow::on_checkBoxImport_clicked(bool checked)
 {
     ui->pushBtnImport->setEnabled(checked);
     ui->pushBtnGenerate->setEnabled(not checked);
+    if (!checked and parsedPattern)
+        freezeSomeAbstractFactoryUI(false);
 }
 
 void MainWindow::importAccepted(const QHash<QString, QStringList> &importData) {

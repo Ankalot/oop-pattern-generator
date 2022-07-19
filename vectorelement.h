@@ -10,16 +10,16 @@ QT_BEGIN_NAMESPACE
 namespace Parser { class VectorElement; }
 QT_END_NAMESPACE
 
-//coming soon
 class VectorElement: public BaseElement
 {
 public:
-    VectorElement(int num);
+    VectorElement(int num = 0);
     ~VectorElement() override;
+
+    Element *&operator[](unsigned i);
 
     void addElement(Element *element);
     void setElement(int index, Element *element);
-    Element *getElement(int index);
     int getCount();
 
 private:

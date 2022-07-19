@@ -10,6 +10,9 @@ Element::Element(const QString &text, const QHash<QString, QVector<int>> &includ
 }
 
 Element::~Element() {
+    const int elementsNum = allElements.count();
+    for (int i = index + 1; i < elementsNum; ++i)
+        --allElements[i]->index;
     allElements.remove(index);
 }
 

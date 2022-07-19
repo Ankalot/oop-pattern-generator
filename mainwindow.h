@@ -6,11 +6,13 @@
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QSettings>
+#include <QSpinBox>
 
 class CodeGenerator;
 class ClassText;
 class ParsedElements;
 class Element;
+class VectorElement;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -68,7 +70,11 @@ private:
     bool parseSingleton();
     bool parseAbstractFactory();
 
+    void freezeSomeAbstractFactoryUI(bool freeze);
     void initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className);
+    void initParsedAbstractFactoryAndUi(QSpinBox **spinBoxNumFactories, QSpinBox **spinBoxNumProducts,
+                                        QLineEdit **lineEditFactoryName, QListWidget **listOfFactories, QListWidget **listOfProducts,
+                                        Element **abstractFactoryName, VectorElement **factoriesNames, VectorElement **productsNames);
     void writeParsedSingletonToUi();
     void writeParsedAbstractFactoryToUi();
     void writeUiToParsedSingleton();

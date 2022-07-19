@@ -21,8 +21,8 @@ void VectorElement::setElement(int index, Element *element) {
         qWarning() << "Vector out of bounds";
 }
 
-Element *VectorElement::getElement(int index) {
-    return elements[index];
+Element *&VectorElement::operator[](unsigned i) {
+    return elements[i];
 }
 
 int VectorElement::getCount() {

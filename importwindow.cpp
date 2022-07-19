@@ -62,7 +62,8 @@ void ImportWindow::initSingletonImportUI() {
 }
 
 void ImportWindow::initAbstractFactoryImportUI() {
-    missingImportsNum = -2;
+    missingImportsNum = -3;
+    makeImportUIPart("abstractFactory", "Abstract factory class .h (1 file)");
     makeImportUIPart("factories", "Factories classes .h and .cpp (1 class per file)");
     makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)");
 }
