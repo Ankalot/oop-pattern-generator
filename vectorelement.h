@@ -16,14 +16,14 @@ public:
     VectorElement(int num = 0);
     ~VectorElement() override;
 
-    Element *&operator[](unsigned i);
+    BaseElement *&operator[](unsigned i);
 
-    void addElement(Element *element);
-    void setElement(int index, Element *element);
+    void addElement(BaseElement *element);
+    void setElement(int index, BaseElement *element);
     int getCount();
 
 private:
-    QVector<Element *> elements;
+    QVector<BaseElement *> elements;
 
 };
 

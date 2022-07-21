@@ -10,18 +10,18 @@ VectorElement::~VectorElement() {
     qDeleteAll(elements);
 }
 
-void VectorElement::addElement(Element *element) {
+void VectorElement::addElement(BaseElement *element) {
     elements.append(element);
 }
 
-void VectorElement::setElement(int index, Element *element) {
+void VectorElement::setElement(int index, BaseElement *element) {
     if (index < elements.count())
         elements[index] = element;
     else
         qWarning() << "Vector out of bounds";
 }
 
-Element *&VectorElement::operator[](unsigned i) {
+BaseElement *&VectorElement::operator[](unsigned i) {
     return elements[i];
 }
 

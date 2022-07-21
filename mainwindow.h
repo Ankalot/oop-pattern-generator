@@ -55,6 +55,7 @@ private:
     QHash<QString, QStringList> importData;
     QHash<QString, QVector<ClassText *>> parseData;
     ParsedElements *parsedPattern = nullptr;
+    QVector<QWidget *> freezedWidgets;
 
     void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
@@ -70,11 +71,13 @@ private:
     bool parseSingleton();
     bool parseAbstractFactory();
 
-    void freezeSomeAbstractFactoryUI(bool freeze);
+    void unfreezeUi();
     void initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className);
     void initParsedAbstractFactoryAndUi(QSpinBox **spinBoxNumFactories, QSpinBox **spinBoxNumProducts,
-                                        QLineEdit **lineEditFactoryName, QListWidget **listOfFactories, QListWidget **listOfProducts,
-                                        Element **abstractFactoryName, VectorElement **factoriesNames, VectorElement **productsNames);
+                                        QLineEdit **lineEditFactoryName, QListWidget **listOfFactories,
+                                        QListWidget **listOfProducts, QHBoxLayout **layoutProductsMethodsList,
+                                        Element **abstractFactoryName, VectorElement **factoriesNames,
+                                        VectorElement **productsNames, VectorElement **productsMethods);
     void writeParsedSingletonToUi();
     void writeParsedAbstractFactoryToUi();
     void writeUiToParsedSingleton();

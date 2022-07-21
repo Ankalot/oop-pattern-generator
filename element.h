@@ -19,6 +19,7 @@ public:
     Element(const QString &text, const QHash<QString, QVector<int>> &includes);
     ~Element() override;
 
+    void addInclude(const QString &fileName, const QVector<int> &poses);
     void setText(const QString &newText);
     const QString &getText();
     const QString &getInitText();

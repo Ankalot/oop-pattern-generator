@@ -2,7 +2,7 @@ QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -26,7 +26,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     parsedelements.cpp \
-    productselement.cpp \
+    productmethods.cpp \
     vectorelement.cpp
 
 HEADERS += \
@@ -41,7 +41,7 @@ HEADERS += \
     indicator.h \
     mainwindow.h \
     parsedelements.h \
-    productselement.h \
+    productmethods.h \
     vectorelement.h
 
 FORMS += \

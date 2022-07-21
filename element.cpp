@@ -16,6 +16,10 @@ Element::~Element() {
     allElements.remove(index);
 }
 
+void Element::addInclude(const QString &fileName, const QVector<int> &poses) {
+    includes.insert(fileName, poses);
+}
+
 QMap<int, Element *> Element::getSortedElementsFromSource(const QString &sourceFileName) {
     QMap<int, Element *> elements;
     const int elementsNum = allElements.count();
@@ -33,35 +37,38 @@ QMap<int, Element *> Element::getSortedElementsFromSource(const QString &sourceF
 }
 
 void Element::setText(const QString &newText) {
+    if (text == newText)
+        return;
     const int shift = newText.length() - text.length();
     QHashIterator<QString, QVector<int>> i(includes);
-    while (i.hasNext()) {
-        i.next();
-        const QString fileName = i.key();
-        QMap<int, Element *> elementsFromFile = getSortedElementsFromSource(fileName);
-        QMapIterator<int, Element *> j(elementsFromFile);
-        int currentShift = 0;
-        const int elementsFromFileNum = elementsFromFile.count();
-        QVector<int> posIndexes(elementsFromFileNum);
-        QVector<int> newPoses(elementsFromFileNum);
-        int counter = 0;
-        while (j.hasNext()) {
-            j.next();
-            QVector<int> elementPosInFile = j.value()->includes.value(fileName);
-            posIndexes[counter] = j.value()->includes.value(fileName).indexOf(j.key());
-            newPoses[counter] = j.key() + currentShift;
-            if (j.value() == this)
-                currentShift += shift;
-            ++counter;
+    if (shift != 0)
+        while (i.hasNext()) {
+            i.next();
+            const QString fileName = i.key();
+            QMap<int, Element *> elementsFromFile = getSortedElementsFromSource(fileName);
+            QMapIterator<int, Element *> j(elementsFromFile);
+            int currentShift = 0;
+            const int elementsFromFileNum = elementsFromFile.count();
+            QVector<int> posIndexes(elementsFromFileNum);
+            QVector<int> newPoses(elementsFromFileNum);
+            int counter = 0;
+            while (j.hasNext()) {
+                j.next();
+                QVector<int> elementPosInFile = j.value()->includes.value(fileName);
+                posIndexes[counter] = j.value()->includes.value(fileName).indexOf(j.key());
+                newPoses[counter] = j.key() + currentShift;
+                if (j.value() == this)
+                    currentShift += shift;
+                ++counter;
+            }
+            j = QMapIterator<int, Element *>(elementsFromFile);
+            counter = 0;
+            while (j.hasNext()) {
+                j.next();
+                j.value()->includes[fileName][posIndexes[counter]] = newPoses[counter];
+                ++counter;
+            }
         }
-        j = QMapIterator<int, Element *>(elementsFromFile);
-        counter = 0;
-        while (j.hasNext()) {
-            j.next();
-            j.value()->includes[fileName][posIndexes[counter]] = newPoses[counter];
-            ++counter;
-        }
-    }
     text = newText;
 }
 

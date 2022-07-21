@@ -3,9 +3,11 @@
 #include "element.h"
 #include "classtext.h"
 #include "vectorelement.h"
+#include "productmethods.h"
 
 #include <QDebug>
 #include <QFile>
+#include <QRegularExpression>
 
 bool ParsedElements::isOk() {
     return ok;
@@ -34,7 +36,7 @@ QVector<int> findWordPosInText(const QString &word, const QString &text, const Q
     pos = wordRe.indexIn(text, pos);
     if (pos != -1) {
         // Don't take: #include "class_name.h". So I check if there is a " before class_name
-        if (type == ".h" or text[pos-1] != "\"") {
+        if (type == ".h" or text[pos] != "\"") {
             wordPos.append(pos+1);
         }
         pos += wordRe.matchedLength();
@@ -195,6 +197,193 @@ bool findProductsClassText(const QHash<QString, QVector<ClassText *>> &parseData
     return true;
 }
 
+Element *makeElementFromNameAndPos(const QString &name, const int pos, ClassText *text) {
+    QHash<QString, QVector<int>> includes;
+    QVector<int> posInText(1);
+    posInText[0] = pos;
+    includes.insert(text->getFileName(), posInText);
+    return new Element(name, includes);
+}
+
+bool findClassBody(QString *classBody, int *classBodyPos, const QString &text) {
+    const QRegularExpression classDef("class +\\w+ {0,}[{](\\X+)[}][;]");
+    QRegularExpressionMatch classDefMatch = classDef.match(text);
+    if (!classDefMatch.hasMatch())
+        return false;
+    *classBody = classDefMatch.captured(1);
+    *classBodyPos = classDefMatch.capturedStart(1);
+    return true;
+}
+
+void findProductMethods(ProductMethods **prodMethodsElement, ClassText *productH) {
+    const QString productTextH = productH->getText();
+    QString classBody;
+    int classBodyPos;
+    if (!findClassBody(&classBody, &classBodyPos, productTextH)) {
+        qWarning() << "Can't find class in" << productH->getFileName() << "file";
+        return;
+    }
+
+    // при изменении константности аргумента в product1.h происходит дичьььь, но в наследниках .h и .cpp меняется нормально(почти)
+    // также в наследниках const первое если его не было, но появилось, то оно вылезет за скобку "("
+
+    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+)");
+    const QRegularExpression methodDef("virtual *(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+) *[(](?<args>.*)[)]");
+    QRegularExpressionMatchIterator i = methodDef.globalMatch(classBody);
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        if (match.captured("name") == "getName")
+            continue;
+        int isConstPos = classBodyPos + match.capturedStart("const");
+        if (match.captured("const") == "")
+            --isConstPos; //actually "" does not have a symbol position, so this is a crutch
+        Element *isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
+        Element *typeElement = makeElementFromNameAndPos(match.captured("type"), classBodyPos +
+                                                         match.capturedStart("type"), productH);
+        Element *nameElement = makeElementFromNameAndPos(match.captured("name"), classBodyPos +
+                                                         match.capturedStart("name"), productH);
+        ClassMethod<Element *> *method = new ClassMethod<Element *>(isConstElement, typeElement, nameElement);
+
+        const QString argsBody = match.captured("args");
+        const int argsBodyPos = classBodyPos + match.capturedStart("args");
+        QRegularExpressionMatchIterator j = argDef.globalMatch(argsBody);
+        while (j.hasNext()) {
+            QRegularExpressionMatch match = j.next();
+            int isConstPos = argsBodyPos + match.capturedStart("const");
+            if (match.captured("const") == "")
+                --isConstPos; //actually "" does not have a symbol position, so this is a crutch
+            Element *isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
+            Element *typeElement = makeElementFromNameAndPos(match.captured("type"), argsBodyPos + match.capturedStart("type"), productH);
+            Element *nameElement = makeElementFromNameAndPos(match.captured("name"), argsBodyPos + match.capturedStart("name"), productH);
+            Argument<Element *> *argument = new Argument<Element *>(isConstElement, typeElement, nameElement);
+            method->addArgument(argument);
+        }
+
+        (*prodMethodsElement)->addMethod(method);
+    }
+}
+
+bool isThisMethod(ClassMethod<Element *> *method, const QString &isConst, const QString &type, const QString &name,
+                  const QVector<QString> &argsConst, const QVector<QString> &argsType, const QVector<QString> &argsName) {
+    if (method->constFlag()->getText() != isConst)
+        return false;
+    if (method->getType()->getText() != type)
+        return false;
+    if (method->getName()->getText() != name)
+        return false;
+    const int argsNum = method->getArgsNum();
+    for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
+        Argument<Element *> *arg = method->getArgument(argIndex);
+        if (arg->constFlag()->getText() != argsConst[argIndex])
+            return false;
+        if (arg->getType()->getText() != argsType[argIndex])
+            return false;
+        if (arg->getName()->getText() != argsName[argIndex])
+            return false;
+    }
+    return true;
+}
+
+bool addInfoAboutMethod(ProductMethods *prodMethodsElement, const QString &isConst, const QString &type, const QString &name,
+                        const QVector<QString> &argsConst, const QVector<QString> &argsType, const QVector<QString> &argsName,
+                        const int &isConstPos, const int &typePos, const int &namePos,
+                        const QVector<int> &argsConstPos, const QVector<int> &argsTypePos, const QVector<int> &argsNamePos,
+                        const QString &fileName) {
+    bool ok = false;
+    const int methodsNum = prodMethodsElement->getCount();
+    QVector<int> pos = QVector<int>(1);
+    for (int methodIndex = 0; methodIndex < methodsNum; ++methodIndex) {
+        ClassMethod<Element *> *method = (*prodMethodsElement)[methodIndex];
+        if (isThisMethod(method, isConst, type, name, argsConst, argsType, argsName)) {
+            pos[0] = isConstPos;
+            method->constFlag()->addInclude(fileName, pos);
+            pos[0] = typePos;
+            method->getType()->addInclude(fileName, pos);
+            pos[0] = namePos;
+            method->getName()->addInclude(fileName, pos);
+            const int argsNum = method->getArgsNum();
+            for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
+                Argument<Element *> *arg = method->getArgument(argIndex);
+                pos[0] = argsConstPos[argIndex];
+                arg->constFlag()->addInclude(fileName, pos);
+                pos[0] = argsTypePos[argIndex];
+                arg->getType()->addInclude(fileName, pos);
+                pos[0] = argsNamePos[argIndex];
+                arg->getName()->addInclude(fileName, pos);
+            }
+            ok = true;
+        }
+    }
+
+    return ok;
+}
+
+bool findChildClassBody(QString *classBody, int *classBodyPos, const QString &text) {
+    const QRegularExpression classDef("class +\\w+ *: (public|private|protected) +\\w+ {0,}[{](\\X+)[}][;]");
+    QRegularExpressionMatch classDefMatch = classDef.match(text);
+    if (!classDefMatch.hasMatch())
+        return false;
+    *classBody = classDefMatch.captured(2);
+    *classBodyPos = classDefMatch.capturedStart(2);
+    return true;
+}
+
+void addInfoAboutProductMethods(ProductMethods **prodMethodsElement, ClassText *productFile) {
+    const QString productText = productFile->getText();
+    QString body;
+    int bodyPos = 0;
+    if (productFile->getFileType() == ".cpp")
+        body = productText;
+    else if (!findChildClassBody(&body, &bodyPos, productText)) {
+        qWarning() << "Can't find child class in" << productFile->getFileName() << "file";
+        return;
+    }
+
+    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+)");
+    QRegularExpression methodDef;
+    if (productFile->getFileType() == ".cpp")
+        methodDef.setPattern("(?<const>(const|)) *(?<type>(\\w|[:])+) +((\\w+)[:][:])(?<name>\\w+) *[(](?<args>.*)[)]");
+    else
+        methodDef.setPattern("(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+) *[(](?<args>.*)[)]");
+    QRegularExpressionMatchIterator i = methodDef.globalMatch(body);
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        if (match.captured("name") == "getName")
+            continue;
+        const QString isConst = match.captured("const");
+        int isConstPos = bodyPos + match.capturedStart("const");
+        if (match.captured("const") == "")
+            --isConstPos; //actually "" does not have a symbol position, so this is a crutch
+        const QString type = match.captured("type");
+        const int typePos = bodyPos + match.capturedStart("type");
+        const QString name = match.captured("name");
+        const int namePos = bodyPos + match.capturedStart("name");
+        const QString argsBody = match.captured("args");
+        const int argsBodyPos = bodyPos + match.capturedStart("args");
+
+        QVector<QString> argsConst, argsType, argsName;
+        QVector<int> argsConstPos, argsTypePos, argsNamePos;
+        QRegularExpressionMatchIterator j = argDef.globalMatch(argsBody);
+        while (j.hasNext()) {
+            QRegularExpressionMatch match = j.next();
+            argsConst.append(match.captured("const"));
+            int isConstPos = argsBodyPos + match.capturedStart("const");
+            if (match.captured("const") == "")
+                --isConstPos; //actually "" does not have a symbol position, so this is a crutch
+            argsConstPos.append(isConstPos);
+            argsType.append(match.captured("type"));
+            argsTypePos.append(argsBodyPos + match.capturedStart("type"));
+            argsName.append(match.captured("name"));
+            argsNamePos.append(argsBodyPos + match.capturedStart("name"));
+        }
+
+        if (!addInfoAboutMethod(*prodMethodsElement, isConst, type, name, argsConst, argsType, argsName,
+                                isConstPos, typePos, namePos, argsConstPos, argsTypePos, argsNamePos, productFile->getFileName())) {
+            qCritical() << "Can't find method" << isConst << type << name << "in file" << productFile->getFileName();
+        }
+    }
+}
+
 void ParsedElements::parseAbstractFactory() {
     // abstractFactoryName
 
@@ -314,7 +503,22 @@ void ParsedElements::parseAbstractFactory() {
     }
     elements.insert("productsNames", productsNamesElements);
 
-    //coming soon
+    // productsMethods
+
+    VectorElement *productsMethodsElement = new VectorElement(productsNum);
+    for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
+        ProductMethods *prodMethodsElement = new ProductMethods;
+        findProductMethods(&prodMethodsElement, productsH[productIndex]);
+
+        const int childProductsNum = childProductsH[productIndex].count();
+        for (int childProductIndex = 0; childProductIndex < childProductsNum; ++childProductIndex) {
+            addInfoAboutProductMethods(&prodMethodsElement, childProductsH[productIndex][childProductIndex]);
+            addInfoAboutProductMethods(&prodMethodsElement, childProductsCpp[productIndex][childProductIndex]);
+        }
+
+        productsMethodsElement->setElement(productIndex, prodMethodsElement);
+    }
+    elements.insert("productsMethods", productsMethodsElement);
 
     ok = true;
 }
