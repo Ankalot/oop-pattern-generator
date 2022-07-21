@@ -316,7 +316,7 @@ void CodeGenerator::genAbstractFactoryFactoriesClassesHandCpp(QVector<ClassText 
     const QString pointerInclude = getPointerInclude(pointerType);
     const QString abstractFactoryFileName = abstractFactoryName.toLower();
     const QString abstractFactoryMethodsText = getAbstractFactoryMethodsText(products, pointerType);
-    QString factoryText = includeGuardText1.arg(abstractFactoryFileName) + QString("\
+    QString factoryText = includeGuardText1.arg(abstractFactoryFileName.toUpper()) + QString("\
 %1\n\
 class %2 {\n\
 public:\n\
