@@ -8,7 +8,7 @@
 CodeGenerator::CodeGenerator(bool includeGuard) {
     this->includeGuard = includeGuard;
     if (includeGuard) {
-        includeGuardText1 = "#ifndef %1\n#define %1\n\n";
+        includeGuardText1 = "#ifndef %1_H\n#define %1_H\n\n";
         includeGuardText2 = "#endif\n";
     } else {
         includeGuardText1 = "";
@@ -17,7 +17,7 @@ CodeGenerator::CodeGenerator(bool includeGuard) {
 }
 
 void CodeGenerator::genSingleton(QString *text, const QString &className) const {
-    *text = includeGuardText1.arg(className) + QString("\
+    *text = includeGuardText1.arg(className.toUpper()) + QString("\
 class %1 {\n\n\
 public:\n\
     static %1& getInstance() {\n\
@@ -37,7 +37,7 @@ private:\n\
 }
 
 void CodeGenerator::genSingleton(QString *text1, QString *text2, const QString &className) const {
-    *text1 = includeGuardText1.arg(className) + QString("\
+    *text1 = includeGuardText1.arg(className.toUpper()) + QString("\
 class %1 {\n\n\
 public:\n\
     static %1& getInstance();\n\n\
@@ -230,7 +230,7 @@ void CodeGenerator::genAbstractFactoryProductsClassesHandCpp(QVector<ClassText *
         const QString productName = products[productIndex];
         const QString productClassFileName = productName.toLower();
         const QString productMethodsText = makeProductMethodsText(productsMethods[productIndex], "    virtual ", "",  " = 0;");
-        const QString productText = includeGuardText1.arg(productClassFileName) + QString("\
+        const QString productText = includeGuardText1.arg(productClassFileName.toUpper()) + QString("\
 #include <string>\n\n\
 class %1 {\n\
 public:\n\
@@ -244,7 +244,7 @@ public:\n\
         for (int factoryIndex = 0; factoryIndex < factoriesNum; ++factoryIndex) {
             const QString factoryName = factories[factoryIndex];
             const QString productFactoryClassFileName = productClassFileName + factoryName.toLower();
-            const QString productFactoryTextH = includeGuardText1.arg(productFactoryClassFileName) + QString("\
+            const QString productFactoryTextH = includeGuardText1.arg(productFactoryClassFileName.toUpper()) + QString("\
 #include \"%1.h\"\n\n\
 class %2%3: public %2 {\n\
 public:\n\
@@ -328,7 +328,7 @@ public:\n\
         const QString factoryName = factories[factoryIndex];
         const QString factoryFileName = factoryName.toLower();
         const QString factoryMethodsTextH = getFactoryMethodsTextForH(products, pointerType);
-        const QString factoryClassTextH = includeGuardText1.arg(factoryFileName) + QString("\
+        const QString factoryClassTextH = includeGuardText1.arg(factoryFileName.toUpper()) + QString("\
 #include \"%1.h\"\n\n\
 class %2: public %3 {\n\
 public:\n\
