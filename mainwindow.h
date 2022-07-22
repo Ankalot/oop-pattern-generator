@@ -34,15 +34,18 @@ private slots:
 
     void spinBoxNumFactoriesChanged(int nextFactoriesNum);
     void spinBoxNumProductsChanged(int nextProductsNum);
+    void spinBoxNumBuildersChanged(int nextBuildersNum);
+    void spinBoxDirectorMethodsNumChanged(int nextDirectorMethodsNum);
+    void spinBoxAbstractBuilderMethodsNumChanged(int nextAbstractBuilderMethodsNum);
 
     void changeMethodsCountInTable(int nextMethodsNum);
     void changeArgsCountInTable(int nextArgsNum);
 
-    void changeProductNameInTable(QListWidgetItem *productNameItem);
+    void changeNameInTable(QListWidgetItem *productNameItem);
 
     void on_actionExport_triggered();
 
-    void on_checkBoxImport_clicked(bool checked);
+    void on_checkBoxImport_toggled(bool checked);
 
     void on_pushBtnImport_clicked();
 
@@ -57,9 +60,13 @@ private:
     ParsedElements *parsedPattern = nullptr;
     QVector<QWidget *> freezedWidgets;
 
-    void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
+    void changeClassesNumInNamesList(QListWidget *listOfClasses, int nextClassesNum, const QString &className);
+    void changeClassesNumInNamesListAndMethodsList(QListWidget *listOfClasses, QHBoxLayout *layoutMethodsList,
+                                                   int nextProductsNum, const QString &className);
+    void addItemToLayoutMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
     void addSpinBoxNumArgsToCell(QTableWidget *table, int rowIndex, int columnIndex);
+    void addRowToMethodsTable(unsigned i, QTableWidget *tableMethods);
 
     void readSettings();
     void writeSettings();
@@ -88,10 +95,10 @@ private:
 
     QStringList *patternTypesList;
 
-    const int TableOfProductMethodsWidth = 700;
-    const int TableOfProductMethodsHeight = 350;
+    const int TableOfMethodsWidth = 700;
+    const int TableOfMethodsHeight = 350;
 
-    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY };
+    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY, BUILDER };
     enum EXPORT_TYPE { CLIPBOARD, CPP_FILE, H_AND_CPP_FILES };
 };
 #endif // MAINWINDOW_H

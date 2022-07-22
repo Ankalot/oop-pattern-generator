@@ -53,10 +53,11 @@ MainWindow::MainWindow(QWidget *parent)
     ui->cmbBoxPatternName->addItem("Select pattern");
     ui->cmbBoxPatternName->addItem("Singleton");
     ui->cmbBoxPatternName->addItem("Abstract factory");
+    ui->cmbBoxPatternName->addItem("Builder");
     ui->gridLayoutSpecial->setRowStretch(0, 1);
 
     patternTypesList = new QStringList;
-    *patternTypesList << "Select pattern" << "Singleton" << "Abstract factory";
+    *patternTypesList << "Select pattern" << "Singleton" << "Abstract factory" << "Builder";
 
     connect(ui->cmbBoxPatternName, SIGNAL(currentIndexChanged(QString)), this, SLOT(comboBox_indexChanged()));
 
@@ -486,7 +487,10 @@ void MainWindow::on_pushBtnGenerate_clicked()
             } else
                 success = generateAbstractFactory(exportType);
             break;
-        } default:
+        } case BUILDER: {
+            // coming soon
+            break;
+        }default:
             qWarning() << "Unexpected pattern type";
             break;
     }
@@ -529,19 +533,38 @@ void addItemToListWidget(QListWidget *listWidget, const QString &itemName) {
     listWidget->addItem(item);
 }
 
+void MainWindow::changeClassesNumInNamesList(QListWidget *listOfClasses, int nextClassesNum, const QString &className) {
+    const int currClassesNum = listOfClasses->count();
+    if (nextClassesNum > currClassesNum) {
+        for (int i = currClassesNum; i < nextClassesNum; ++i) {
+            addItemToListWidget(listOfClasses, className + QString::number(i + 1));
+        }
+    } else {
+        for (int i = currClassesNum; i > nextClassesNum; --i) {
+            delete listOfClasses->item(i-1);
+        }
+    }
+}
+
 void MainWindow::spinBoxNumFactoriesChanged(const int nextMethodsNum) {
     QListWidget *listOfFactories = ui->centralwidget->findChild<QListWidget *>("listOfFactories");
     if (!listOfFactories)
         qCritical() << "listOfFactories not found";
-    const int currFactoriesNum = listOfFactories->count();
+    changeClassesNumInNamesList(listOfFactories, nextMethodsNum, "Factory");
+}
 
-    if (nextMethodsNum > currFactoriesNum) {
-        for (int i = currFactoriesNum; i < nextMethodsNum; ++i) {
-            addItemToListWidget(listOfFactories, QString("Factory") + QString::number(i + 1));
+void MainWindow::changeClassesNumInNamesListAndMethodsList(QListWidget *listOfClasses, QHBoxLayout *layoutMethodsList,
+                                               int nextProductsNum, const QString &className) {
+    const int currProductsNum = listOfClasses->count();
+    if (nextProductsNum > currProductsNum) {
+        for (int i = currProductsNum; i < nextProductsNum; ++i) {
+            addItemToListWidget(listOfClasses, className + QString::number(i + 1));
+            addItemToLayoutMethodsList(layoutMethodsList, className + QString::number(i + 1));
         }
     } else {
-        for (int i = currFactoriesNum; i > nextMethodsNum; --i) {
-            delete listOfFactories->item(i-1);
+        for (int i = currProductsNum; i > nextProductsNum; --i) {
+            delete listOfClasses->item(i-1);
+            delItemFromLayoutProductsMethodsList(layoutMethodsList, i-1);
         }
     }
 }
@@ -559,19 +582,7 @@ void MainWindow::spinBoxNumProductsChanged(const int nextProductsNum) {
     QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(listOfProductsMethodsWidget->layout());
     if (!layoutProductsMethodsList)
         qCritical() << "layoutProductsMethodsList not found";
-    const int currProductsNum = listOfProducts->count();
-
-    if (nextProductsNum > currProductsNum) {
-        for (int i = currProductsNum; i < nextProductsNum; ++i) {
-            addItemToListWidget(listOfProducts, QString("Product") + QString::number(i + 1));
-            addItemToLayoutProductsMethodsList(layoutProductsMethodsList, QString("Product") + QString::number(i + 1));
-        }
-    } else {
-        for (int i = currProductsNum; i > nextProductsNum; --i) {
-            delete listOfProducts->item(i-1);
-            delItemFromLayoutProductsMethodsList(layoutProductsMethodsList, i-1);
-        }
-    }
+    changeClassesNumInNamesListAndMethodsList(listOfProducts, layoutProductsMethodsList, nextProductsNum, "Product");
 }
 
 void addCheckBoxConstToCell(QTableWidget *table, const int rowIndex, const int columnIndex) {
@@ -656,34 +667,38 @@ void MainWindow::addSpinBoxNumArgsToCell(QTableWidget *table, const int rowIndex
     connect(spinBoxNumArgs, SIGNAL(valueChanged(int)), this, SLOT(changeArgsCountInTable(int)));
 }
 
-void MainWindow::changeMethodsCountInTable(const int nextMethodsNum) {
-    QWidget *productMethodsContent = qobject_cast<QWidget *>(QObject::sender()->parent()->parent());
-    if (!productMethodsContent)
-        qCritical() << "productMethodsContent not found";
-    QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
-    if (!productMethods)
-        qCritical() << "productMethods not found";
-    QLayoutItem *tableProductMethodsItem = productMethods->itemAt(1); //0 - labels and buttons widget, 1 - table
-    if (!tableProductMethodsItem)
-        qCritical() << "tableProductMethods item not found";
-    QTableWidget *tableProductMethods = qobject_cast<QTableWidget *>(tableProductMethodsItem->widget());
-    if (!tableProductMethods)
-        qCritical() << "tableProductMethods not found";
-    const int currMethodsNum = tableProductMethods->rowCount();
-    const int currArgsNum = int((tableProductMethods->columnCount()-4)/3);
+void MainWindow::addRowToMethodsTable(unsigned i, QTableWidget *tableMethods) {
+    addSpinBoxNumArgsToCell(tableMethods, i, 0);
+    addCheckBoxConstToCell(tableMethods, i, 1);
+    tableMethods->setItem(i, 2, new QTableWidgetItem(""));
+    tableMethods->setItem(i, 3, new QTableWidgetItem(""));
+    const int currArgsNum = int((tableMethods->columnCount()-4)/3);
+    for (int j = 0; j < currArgsNum; ++j) {
+        addCheckBoxConstToCell(tableMethods, i, 4+j*3);
+        tableMethods->setItem(i, 5+j*3, new QTableWidgetItem(""));
+        tableMethods->setItem(i, 6+j*3, new QTableWidgetItem(""));
+    }
+}
 
-    tableProductMethods->setRowCount(nextMethodsNum);
+void MainWindow::changeMethodsCountInTable(const int nextMethodsNum) {
+    QWidget *methodsContent = qobject_cast<QWidget *>(QObject::sender()->parent()->parent());
+    if (!methodsContent)
+        qCritical() << "methodsContent not found";
+    QVBoxLayout *methodsLayout = qobject_cast<QVBoxLayout *>(methodsContent->layout());
+    if (!methodsLayout)
+        qCritical() << "methodsLayout not found";
+    QLayoutItem *tableMethodsItem = methodsLayout->itemAt(1); //0 - labels and buttons widget, 1 - table
+    if (!tableMethodsItem)
+        qCritical() << "tableMethodsItem item not found";
+    QTableWidget *tableMethods = qobject_cast<QTableWidget *>(tableMethodsItem->widget());
+    if (!tableMethods)
+        qCritical() << "tableMethods not found";
+    const int currMethodsNum = tableMethods->rowCount();
+
+    tableMethods->setRowCount(nextMethodsNum);
     if (nextMethodsNum > currMethodsNum) {
         for (int i = currMethodsNum; i < nextMethodsNum; ++i) {
-            addSpinBoxNumArgsToCell(tableProductMethods, i, 0);
-            addCheckBoxConstToCell(tableProductMethods, i, 1);
-            tableProductMethods->setItem(i, 2, new QTableWidgetItem(""));
-            tableProductMethods->setItem(i, 3, new QTableWidgetItem(""));
-            for (int j = 0; j < currArgsNum; ++j) {
-                addCheckBoxConstToCell(tableProductMethods, i, 4+j*3);
-                tableProductMethods->setItem(i, 5+j*3, new QTableWidgetItem(""));
-                tableProductMethods->setItem(i, 6+j*3, new QTableWidgetItem(""));
-            }
+            addRowToMethodsTable(i, tableMethods);
         }
     }
 }
@@ -696,75 +711,84 @@ void MainWindow::delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProduct
     productMethodsContentItem->widget()->deleteLater();
     delete productMethodsContentItem;
     QWidget *widget = layoutProductsMethodsList->parentWidget();
-    widget->setFixedWidth(widget->minimumWidth()-TableOfProductMethodsWidth);
+    widget->setFixedWidth(widget->minimumWidth()-TableOfMethodsWidth);
 }
 
-void MainWindow::addItemToLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, const QString &productName) {
-    QWidget *productMethodsContent = new QWidget;
-    QVBoxLayout *productMethods = new QVBoxLayout;
+QTableWidget *makeMethodsTable() {
+    QTableWidget *tableMethods = new QTableWidget;
+    tableMethods->setFont(QFont("MS Shell Dlg 2", 12));
+    tableMethods->setEditTriggers(QAbstractItemView::AllEditTriggers);
+    tableMethods->setRowCount(0);
+    tableMethods->setColumnCount(4);
+    tableMethods->setHorizontalHeaderItem(0, new QTableWidgetItem("Num args"));
+    tableMethods->setColumnWidth(0, 100);
+    tableMethods->setHorizontalHeaderItem(1, new QTableWidgetItem("Const"));
+    tableMethods->setColumnWidth(1, 80);
+    tableMethods->setHorizontalHeaderItem(2, new QTableWidgetItem("Output type"));
+    tableMethods->setHorizontalHeaderItem(3, new QTableWidgetItem("Name"));
+    return tableMethods;
+}
+
+void MainWindow::addItemToLayoutMethodsList(QHBoxLayout *layoutMethodsList, const QString &className) {
+    QWidget *methodsContent = new QWidget;
+    QVBoxLayout *methodsLayout = new QVBoxLayout;
     QWidget *labelAndBoxesContent = new QWidget;
     QHBoxLayout *labelAndBoxes = new QHBoxLayout;
-    QLabel *labelProductMethods = new QLabel(productName + " methods:");
+    QLabel *labelMethods = new QLabel(className + " methods:");
     QLabel *lblNumMethods = new QLabel("Num methods:");
     QSpinBox *spinBoxNumMethods = new QSpinBox;
-    QTableWidget *tableProductMethods = new QTableWidget;
+    QTableWidget *tableMethods = makeMethodsTable();
 
-    productMethodsContent->setLayout(productMethods);
-    productMethods->setMargin(0);
-    productMethods->addWidget(labelAndBoxesContent);
-    productMethods->addWidget(tableProductMethods);
+
+    methodsContent->setLayout(methodsLayout);
+    methodsLayout->setMargin(0);
+    methodsLayout->addWidget(labelAndBoxesContent);
+    methodsLayout->addWidget(tableMethods);
     labelAndBoxesContent->setLayout(labelAndBoxes);
     labelAndBoxes->setMargin(0);
-    labelAndBoxes->addWidget(labelProductMethods);
+    labelAndBoxes->addWidget(labelMethods);
     labelAndBoxes->addWidget(lblNumMethods);
     labelAndBoxes->addWidget(spinBoxNumMethods);
-    labelProductMethods->setFont(QFont("MS Shell Dlg 2", 12));
-    labelProductMethods->setFixedHeight(30);
+    labelMethods->setFont(QFont("MS Shell Dlg 2", 12));
+    labelMethods->setFixedHeight(30);
     lblNumMethods->setFont(QFont("MS Shell Dlg 2", 12));
     lblNumMethods->setFixedSize(130, 30);
     spinBoxNumMethods->setFont(QFont("MS Shell Dlg 2", 12));
     spinBoxNumMethods->setFixedSize(60, 30);
     spinBoxNumMethods->setRange(0, 99);
 
-    tableProductMethods->setFont(QFont("MS Shell Dlg 2", 12));
-    tableProductMethods->setEditTriggers(QAbstractItemView::AllEditTriggers);
-    tableProductMethods->setRowCount(0);
-    tableProductMethods->setColumnCount(4);
-    tableProductMethods->setHorizontalHeaderItem(0, new QTableWidgetItem("Num args"));
-    tableProductMethods->setColumnWidth(0, 100);
-    tableProductMethods->setHorizontalHeaderItem(1, new QTableWidgetItem("Const"));
-    tableProductMethods->setColumnWidth(1, 80);
-    tableProductMethods->setHorizontalHeaderItem(2, new QTableWidgetItem("Output type"));
-    tableProductMethods->setHorizontalHeaderItem(3, new QTableWidgetItem("Name"));
+    QWidget *widget = layoutMethodsList->parentWidget();
+    widget->setFixedWidth(widget->minimumWidth()+TableOfMethodsWidth);
 
-    QWidget *widget = layoutProductsMethodsList->parentWidget();
-    widget->setFixedWidth(widget->minimumWidth()+TableOfProductMethodsWidth);
-
-    layoutProductsMethodsList->addWidget(productMethodsContent);
+    layoutMethodsList->addWidget(methodsContent);
 
     connect(spinBoxNumMethods, SIGNAL(valueChanged(int)), this, SLOT(changeMethodsCountInTable(int)));
 }
 
-void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
-    QListWidget *listOfProducts = ui->centralwidget->findChild<QListWidget *>("listOfProducts");
-    if (!listOfProducts)
-        qCritical() << "listOfProducts not found";
-    const int index = listOfProducts->currentRow();
-    QScrollArea *listOfProductsMethods = ui->centralwidget->findChild<QScrollArea *>("listOfProductsMethods");
-    if (!listOfProductsMethods)
-        qCritical() << "listOfProductsMethods not found";
-    QWidget *contentOfListOfProductsMethods = listOfProductsMethods->widget();
-    QHBoxLayout *layoutProductsMethodsList = qobject_cast<QHBoxLayout *>(contentOfListOfProductsMethods->layout());
-    if (!layoutProductsMethodsList)
-        qCritical() << "layoutProductsMethodsList not found";
-    QLayoutItem *productMethodsContentItem = layoutProductsMethodsList->itemAt(index);
-    if (!productMethodsContentItem)
-        qCritical() << "productMethodsContent item not found";
-    QWidget *productMethodsContent = productMethodsContentItem->widget();
-    QVBoxLayout *productMethods = qobject_cast<QVBoxLayout *>(productMethodsContent->layout());
-    if (!productMethods)
-        qCritical() << "productMethods not found";
-    QLayoutItem *labelAndButtonsContentItem = productMethods->itemAt(0); //0 - labels and buttons widget, 1 - table
+void MainWindow::changeNameInTable(QListWidgetItem *classNameItem) {
+    QListWidget *listOfClasses = classNameItem->listWidget();
+    const int index = listOfClasses->currentRow();
+    QStringList classesNames, classesMethods;
+    classesNames << "listOfProducts" << "listProductsNames";
+    classesMethods << "listOfProductsMethods" << "productsMethods";
+    const int classNameIndex = classesNames.indexOf(listOfClasses->objectName());
+    if (classNameIndex >= classesMethods.count())
+        qCritical() << "Unknown classes methods list (QScrollArea)";
+    QScrollArea *listOfClassesMethods = ui->centralwidget->findChild<QScrollArea *>(classesMethods[classNameIndex]);
+    if (!listOfClassesMethods)
+        qCritical() << "listOfClassesMethods not found";
+    QWidget *contentOfListOfClassesMethods = listOfClassesMethods->widget();
+    QHBoxLayout *layoutClassesMethodsList = qobject_cast<QHBoxLayout *>(contentOfListOfClassesMethods->layout());
+    if (!layoutClassesMethodsList)
+        qCritical() << "layoutClassesMethodsList not found";
+    QLayoutItem *classMethodsContentItem = layoutClassesMethodsList->itemAt(index);
+    if (!classMethodsContentItem)
+        qCritical() << "classMethodsContentItem item not found";
+    QWidget *classMethodsContent = classMethodsContentItem->widget();
+    QVBoxLayout *classMethods = qobject_cast<QVBoxLayout *>(classMethodsContent->layout());
+    if (!classMethods)
+        qCritical() << "classMethods not found";
+    QLayoutItem *labelAndButtonsContentItem = classMethods->itemAt(0); //0 - labels and buttons widget, 1 - table
     if (!labelAndButtonsContentItem)
         qCritical() << "labelAndButtonsContent item not found";
     QWidget *labelAndButtonsContent = labelAndButtonsContentItem->widget();
@@ -777,7 +801,7 @@ void MainWindow::changeProductNameInTable(QListWidgetItem *productNameItem) {
     QLabel *labelProductMethods = qobject_cast<QLabel *>(labelProductMethodsItem->widget());
     if (!labelProductMethods)
         qCritical() << "labelProductMethods not found";
-    labelProductMethods->setText(productNameItem->text() + " methods:");
+    labelProductMethods->setText(classNameItem->text() + " methods:");
 }
 
 void clearParseData(QHash<QString, QVector<ClassText *>> *parseData) {
@@ -789,6 +813,7 @@ void clearParseData(QHash<QString, QVector<ClassText *>> *parseData) {
 
 void MainWindow::comboBox_indexChanged() {
     ui->pushBtnGenerate->setEnabled(not ui->checkBoxImport->isChecked());
+    ui->checkBoxImport->setEnabled(true);
     unfreezeUi();
     clearParseData(&parseData);
     delete parsedPattern;
@@ -808,9 +833,7 @@ void MainWindow::comboBox_indexChanged() {
             QLineEdit *lineEditSngltn = new QLineEdit;
 
             labelSngltn->setMinimumSize(200, 40);
-            labelSngltn->setFont(QFont("MS Shell Dlg 2", 14));
             lineEditSngltn->setMinimumSize(200, 40);
-            lineEditSngltn->setFont(QFont("MS Shell Dlg 2", 14));
             lineEditSngltn->setObjectName("lineEditSngltn");
 
             ui->gridLayoutSpecial->addWidget(labelSngltn, 0, 0);
@@ -847,30 +870,21 @@ void MainWindow::comboBox_indexChanged() {
             QHBoxLayout *layoutProductsMethodsList = new QHBoxLayout;
 
             spinBoxNumFactories->setFixedSize(80, 40);
-            spinBoxNumFactories->setFont(QFont("MS Shell Dlg 2", 14));
             spinBoxNumFactories->setMinimum(1);
             spinBoxNumFactories->setMaximum(99);
             spinBoxNumFactories->setObjectName("spinBoxNumFactories");
             spinBoxNumProducts->setFixedSize(80, 40);
-            spinBoxNumProducts->setFont(QFont("MS Shell Dlg 2", 14));
             spinBoxNumProducts->setMinimum(1);
             spinBoxNumProducts->setMaximum(99);
             spinBoxNumProducts->setObjectName("spinBoxNumProducts");
             labelNumFactories->setMinimumSize(260, 40);
-            labelNumFactories->setFont(QFont("MS Shell Dlg 2", 14));
             labelNumProducts->setMinimumSize(260, 40);
-            labelNumProducts->setFont(QFont("MS Shell Dlg 2", 14));
 
             ptrTypeAndFactoryNameLayout->setContentsMargins(20, 0, 0, 0);
-            lblFactoryName->setFont(QFont("MS Shell Dlg 2", 14));
-            lineEditFactoryName->setFont(QFont("MS Shell Dlg 2", 14));
             lineEditFactoryName->setObjectName("lineEditFactoryName");
-            btnRawPointer->setFont(QFont("MS Shell Dlg 2", 14));
             btnRawPointer->setChecked(true);
             btnRawPointer->setObjectName("btnRawPointer");
-            btnUniquePointer->setFont(QFont("MS Shell Dlg 2", 14));
             btnUniquePointer->setObjectName("btnUniquePointer");
-            btnSharedPointer->setFont(QFont("MS Shell Dlg 2", 14));
             btnSharedPointer->setObjectName("btnSharedPointer");
 
             listOfFactories->setObjectName("listOfFactories");
@@ -884,14 +898,13 @@ void MainWindow::comboBox_indexChanged() {
             listOfProducts->setEditTriggers(QAbstractItemView::AllEditTriggers);
             addItemToListWidget(listOfProducts, "Product1");
 
-            labelFunctions->setFont(QFont("MS Shell Dlg 2", 14));
             labelFunctions->setAlignment(Qt::AlignCenter);
             contentOfListOfProductsMethods->setLayout(layoutProductsMethodsList);
-            contentOfListOfProductsMethods->setFixedSize(16, TableOfProductMethodsHeight);
+            contentOfListOfProductsMethods->setFixedSize(16, TableOfMethodsHeight);
             listOfProductsMethods->setMinimumHeight(200);
             listOfProductsMethods->setWidget(contentOfListOfProductsMethods);
             listOfProductsMethods->setObjectName("listOfProductsMethods");
-            addItemToLayoutProductsMethodsList(layoutProductsMethodsList, "Product1");
+            addItemToLayoutMethodsList(layoutProductsMethodsList, "Product1");
 
             ui->gridLayoutSpecial->addLayout(gridLayoutSpecial1, 0, 0);
             gridLayoutSpecial1->addLayout(gridLayoutSpecial11, 0, 0);
@@ -919,12 +932,174 @@ void MainWindow::comboBox_indexChanged() {
 
             connect(spinBoxNumFactories, SIGNAL(valueChanged(int)), this, SLOT(spinBoxNumFactoriesChanged(int)));
             connect(spinBoxNumProducts, SIGNAL(valueChanged(int)), this, SLOT(spinBoxNumProductsChanged(int)));
-            connect(listOfProducts, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(changeProductNameInTable(QListWidgetItem*)));
+            connect(listOfProducts, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(changeNameInTable(QListWidgetItem*)));
+            break;
+        } case BUILDER: {
+            // no import for now
+            ui->checkBoxImport->setChecked(false);
+            ui->checkBoxImport->setEnabled(false);
+
+            QHBoxLayout *layoutDirector = new QHBoxLayout;
+            QLabel *lblDirectorConfigsNum = new QLabel("Director's config methods num:");
+            QSpinBox *spinBoxDirectorMethodsNum = new QSpinBox;
+            QLabel *lblDirectorName = new QLabel("Enter director name:");
+            QLineEdit *lineEditDirectorName = new QLineEdit;
+
+            lblDirectorConfigsNum->setFixedWidth(330);
+            lblDirectorName->setFixedWidth(310);
+            spinBoxDirectorMethodsNum->setFixedSize(80, 40);
+            spinBoxDirectorMethodsNum->setMinimum(1);
+            spinBoxDirectorMethodsNum->setMaximum(99);
+            lblDirectorName->setContentsMargins(20, 0, 0, 0);
+
+            layoutDirector->addWidget(lblDirectorConfigsNum);
+            layoutDirector->addWidget(spinBoxDirectorMethodsNum);
+            layoutDirector->addWidget(lblDirectorName);
+            layoutDirector->addWidget(lineEditDirectorName);
+            ui->gridLayoutSpecial->addLayout(layoutDirector, 1, 0);
+
+            QHBoxLayout *layoutAbstractBuilder = new QHBoxLayout;
+            QLabel *lblAbstractBuilderNumMethods = new QLabel("Abstract builder's methods num:");
+            QSpinBox *spinBoxAbstractBuilderMethodsNum = new QSpinBox;
+            QLabel *lblAbstractBuilderName = new QLabel("Enter abstract builder name:");
+            QLineEdit *lineEditAbstractBuilderName = new QLineEdit;
+
+            lblAbstractBuilderNumMethods->setFixedWidth(330);
+            lblAbstractBuilderName->setFixedWidth(310);
+            spinBoxAbstractBuilderMethodsNum->setFixedSize(80, 40);
+            spinBoxAbstractBuilderMethodsNum->setMinimum(1);
+            spinBoxAbstractBuilderMethodsNum->setMaximum(99);
+            lblAbstractBuilderName->setContentsMargins(20, 0, 0, 0);
+
+
+            layoutAbstractBuilder->addWidget(lblAbstractBuilderNumMethods);
+            layoutAbstractBuilder->addWidget(spinBoxAbstractBuilderMethodsNum);
+            layoutAbstractBuilder->addWidget(lblAbstractBuilderName);
+            layoutAbstractBuilder->addWidget(lineEditAbstractBuilderName);
+            ui->gridLayoutSpecial->addLayout(layoutAbstractBuilder, 2, 0);
+
+            QWidget *buildersNumContent = new QWidget;
+            QHBoxLayout *layoutBuildersNum = new QHBoxLayout;
+            QLabel *lblBuildersNum = new QLabel("Builders (products) num:");
+            QSpinBox *spinBoxBuildersNum = new QSpinBox;
+
+            buildersNumContent->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+            layoutBuildersNum->setMargin(0);
+            lblBuildersNum->setFixedWidth(330);
+            spinBoxBuildersNum->setFixedSize(80, 40);
+            spinBoxBuildersNum->setMinimum(1);
+            spinBoxBuildersNum->setMaximum(99);
+
+            buildersNumContent->setLayout(layoutBuildersNum);
+            layoutBuildersNum->addWidget(lblBuildersNum, 0, Qt::AlignLeft);
+            layoutBuildersNum->addWidget(spinBoxBuildersNum, 0, Qt::AlignLeft);
+            ui->gridLayoutSpecial->addWidget(buildersNumContent, 3, 0);
+
+            QGridLayout *layoutNames = new QGridLayout;
+            QLabel *lblBuildersNames = new QLabel("Builders names:");
+            QListWidget *listBuildersNames = new QListWidget;
+            QLabel *lblProductsNames = new QLabel("Products names:");
+            QListWidget *listProductsNames = new QListWidget;
+
+            listBuildersNames->setFont(QFont("MS Shell Dlg 2", 12));
+            listBuildersNames->setObjectName("listBuildersNames");
+            listProductsNames->setFont(QFont("MS Shell Dlg 2", 12));
+            listProductsNames->setObjectName("listProductsNames");
+            addItemToListWidget(listBuildersNames, "Builder1");
+            addItemToListWidget(listProductsNames, "Product1");
+
+            layoutNames->addWidget(lblBuildersNames, 0, 0);
+            layoutNames->addWidget(listBuildersNames, 1, 0);
+            layoutNames->addWidget(lblProductsNames, 0, 1);
+            layoutNames->addWidget(listProductsNames, 1, 1);
+            ui->gridLayoutSpecial->addLayout(layoutNames, 4, 0);
+
+            QLabel *labelMethods = new QLabel("Methods:");
+            labelMethods->setAlignment(Qt::AlignCenter);
+            ui->gridLayoutSpecial->addWidget(labelMethods, 5, 0);
+
+            QTabWidget *tabWidgetMethods = new QTabWidget;
+            QTableWidget *directorMethods = makeMethodsTable();
+            QTableWidget *abstractBuilderMethods = makeMethodsTable();
+            QScrollArea *productsMethods = new QScrollArea;
+            QWidget *productsMethodsContent = new QWidget;
+            QHBoxLayout *layoutProductsMethods = new QHBoxLayout;
+
+            tabWidgetMethods->setMinimumHeight(220);
+            directorMethods->setRowCount(1);
+            addRowToMethodsTable(0, directorMethods);
+            directorMethods->setObjectName("directorMethods");
+            abstractBuilderMethods->setRowCount(1);
+            addRowToMethodsTable(0, abstractBuilderMethods);
+            abstractBuilderMethods->setObjectName("abstractBuilderMethods");
+            productsMethods->setObjectName("productsMethods");
+            productsMethodsContent->setFixedSize(16, TableOfMethodsHeight);
+
+            tabWidgetMethods->addTab(directorMethods, "Director");
+            tabWidgetMethods->addTab(abstractBuilderMethods, "Abstract builder");
+            tabWidgetMethods->addTab(productsMethods, "Products");
+            productsMethods->setWidget(productsMethodsContent);
+            productsMethodsContent->setLayout(layoutProductsMethods);
+            addItemToLayoutMethodsList(layoutProductsMethods, "Product1");
+            ui->gridLayoutSpecial->addWidget(tabWidgetMethods, 6, 0);
+
+            connect(spinBoxDirectorMethodsNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxDirectorMethodsNumChanged(int)));
+            connect(spinBoxAbstractBuilderMethodsNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxAbstractBuilderMethodsNumChanged(int)));
+            connect(spinBoxBuildersNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxNumBuildersChanged(int)));
+            connect(listProductsNames, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(changeNameInTable(QListWidgetItem*)));
             break;
         } default:
             qWarning() << "Unexpected pattern type";
             break;
     }
+}
+
+void MainWindow::spinBoxAbstractBuilderMethodsNumChanged(int nextAbstractBuilderMethodsNum) {
+    QTableWidget *abstractBuilderMethods = ui->centralwidget->findChild<QTableWidget *>("abstractBuilderMethods");
+    if (!abstractBuilderMethods)
+        qCritical() << "abstractBuilderMethods not found";
+    const int currAbstractBuilderMethodsNum = abstractBuilderMethods->rowCount();
+    abstractBuilderMethods->setRowCount(nextAbstractBuilderMethodsNum);
+    if (nextAbstractBuilderMethodsNum > currAbstractBuilderMethodsNum) {
+        for (int i = currAbstractBuilderMethodsNum; i < nextAbstractBuilderMethodsNum; ++i) {
+            addRowToMethodsTable(i, abstractBuilderMethods);
+        }
+    }
+}
+
+void MainWindow::spinBoxDirectorMethodsNumChanged(int nextDirectorMethodsNum) {
+    QTableWidget *directorMethods = ui->centralwidget->findChild<QTableWidget *>("directorMethods");
+    if (!directorMethods)
+        qCritical() << "directorMethods not found";
+    const int currDirectorMethodsNum = directorMethods->rowCount();
+    directorMethods->setRowCount(nextDirectorMethodsNum);
+    if (nextDirectorMethodsNum > currDirectorMethodsNum) {
+        for (int i = currDirectorMethodsNum; i < nextDirectorMethodsNum; ++i) {
+            addRowToMethodsTable(i, directorMethods);
+        }
+    }
+}
+
+void MainWindow::spinBoxNumBuildersChanged(int nextBuildersNum) {
+    QListWidget *listBuildersNames = ui->centralwidget->findChild<QListWidget *>("listBuildersNames");
+    if (!listBuildersNames)
+        qCritical() << "listBuildersNames not found";
+    changeClassesNumInNamesList(listBuildersNames, nextBuildersNum, "Builder");
+
+    //products num = builders num
+    QListWidget *listProductsNames = ui->centralwidget->findChild<QListWidget *>("listProductsNames");
+    if (!listBuildersNames)
+        qCritical() << "listProductsNames not found";
+    QScrollArea *productsMethods = ui->centralwidget->findChild<QScrollArea *>("productsMethods");
+    if (!productsMethods)
+        qCritical() << "productsMethods not found";
+    QWidget *productsMethodsContent = productsMethods->widget();
+    if (!productsMethodsContent)
+        qCritical() << "productsMethodsContent widget not found";
+    QHBoxLayout *layoutProductsMethods = qobject_cast<QHBoxLayout *>(productsMethodsContent->layout());
+    if (!layoutProductsMethods)
+        qCritical() << "layoutProductsMethods not found";
+    changeClassesNumInNamesListAndMethodsList(listProductsNames, layoutProductsMethods, nextBuildersNum, "Product");
 }
 
 void MainWindow::on_actionExport_triggered() {
@@ -1091,7 +1266,7 @@ void MainWindow::unfreezeUi() {
     freezedWidgets.clear();
 }
 
-void MainWindow::on_checkBoxImport_clicked(bool checked)
+void MainWindow::on_checkBoxImport_toggled(bool checked)
 {
     ui->pushBtnImport->setEnabled(checked);
     ui->pushBtnGenerate->setEnabled(not checked);
