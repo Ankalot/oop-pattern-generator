@@ -61,33 +61,39 @@ void %2::printCurrentAddress() {\n\
 }\n").arg(className.toLower()).arg(className);
 }
 
-QString makeProductArgText(Argument<QString> *argument) {
+QString makeMethodArgText(Argument<QString> *argument) {
     QString constText = "";
     if (argument->constFlag())
         constText = "const ";
     return constText + argument->getType() + " " + argument->getName();
 }
 
-QString makeProductMethodsText(QVector<ClassMethod<QString> *> &productMethods, const QString &s1, const QString &s2, const QString &s3) {
-    QString productMethodsText = "";
-    const int productMethodsNum = productMethods.count();
-    for (int methodIndex = 0; methodIndex < productMethodsNum; ++methodIndex) {
-        productMethodsText += s1;
-        if (productMethods[methodIndex]->constFlag()) {
-            productMethodsText += "const ";
-        }
-        productMethodsText += productMethods[methodIndex]->getType();
-        productMethodsText += " " + s2 + productMethods[methodIndex]->getName() + "(";
-        const int argsNum = productMethods[methodIndex]->getArgsNum();
-        for (int argIndex = 0; argIndex < argsNum-1; ++argIndex) {
-            productMethodsText += makeProductArgText(productMethods[methodIndex]->getArgument(argIndex)) + ", ";
-        }
-        if (argsNum != 0) {
-            productMethodsText += makeProductArgText(productMethods[methodIndex]->getArgument(argsNum-1));
-        }
-        productMethodsText += ")" + s3 + "\n";
+QString makeArgsText(ClassMethod<QString> *classMethod) {
+    QString classMethodText = "";
+    const int argsNum = classMethod->getArgsNum();
+    for (int argIndex = 0; argIndex < argsNum-1; ++argIndex) {
+        classMethodText += makeMethodArgText(classMethod->getArgument(argIndex)) + ", ";
     }
-    return productMethodsText;
+    if (argsNum != 0) {
+        classMethodText += makeMethodArgText(classMethod->getArgument(argsNum-1));
+    }
+    return classMethodText;
+}
+
+QString makeClassMethodsText(QVector<ClassMethod<QString> *> &classMethods, const QString &s1, const QString &s2, const QString &s3) {
+    QString classMethodsText = "";
+    const int classMethodsNum = classMethods.count();
+    for (int classIndex = 0; classIndex < classMethodsNum; ++classIndex) {
+        classMethodsText += s1;
+        if (classMethods[classIndex]->constFlag()) {
+            classMethodsText += "const ";
+        }
+        classMethodsText += classMethods[classIndex]->getType();
+        classMethodsText += " " + s2 + classMethods[classIndex]->getName() + "(";
+        classMethodsText += makeArgsText(classMethods[classIndex]);
+        classMethodsText += ")" + s3 + "\n";
+    }
+    return classMethodsText;
 }
 
 QString makeProductsText(QVector<QVector<ClassMethod<QString> *>> &productsMethods, QVector<QString> &products, QVector<QString> &factories) {
@@ -95,7 +101,7 @@ QString makeProductsText(QVector<QVector<ClassMethod<QString> *>> &productsMetho
     const int productsNum = products.count();
     for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
         const QString productName = products[productIndex];
-        const QString productMethodsText = makeProductMethodsText(productsMethods[productIndex], "    virtual ", "", " = 0;");
+        const QString productMethodsText = makeClassMethodsText(productsMethods[productIndex], "    virtual ", "", " = 0;");
         const QString productText = QString("class %1 {\n\
 public:\n\
     virtual const std::string getName() = 0;\n\
@@ -104,7 +110,7 @@ public:\n\
 };\n\n").arg(productName).arg(productMethodsText);
         productsText += productText;
 
-        const QString productFactoryMethodsText = makeProductMethodsText(productsMethods[productIndex], "    ", "", " override { }");
+        const QString productFactoryMethodsText = makeClassMethodsText(productsMethods[productIndex], "    ", "", " override { }");
         const int factoriesNum = factories.count();
         for (int factoryIndex = 0; factoryIndex < factoriesNum; ++factoryIndex) {
             const QString factoryName = factories[factoryIndex];
@@ -229,7 +235,7 @@ void CodeGenerator::genAbstractFactoryProductsClassesHandCpp(QVector<ClassText *
     for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
         const QString productName = products[productIndex];
         const QString productClassFileName = productName.toLower();
-        const QString productMethodsText = makeProductMethodsText(productsMethods[productIndex], "    virtual ", "",  " = 0;");
+        const QString productMethodsText = makeClassMethodsText(productsMethods[productIndex], "    virtual ", "",  " = 0;");
         const QString productText = includeGuardText1.arg(productClassFileName.toUpper()) + QString("\
 #include <string>\n\n\
 class %1 {\n\
@@ -240,7 +246,7 @@ public:\n\
 };\n\n").arg(productName).arg(productMethodsText) + includeGuardText2;
         initClassText(classTexts, classTextCounter, productClassFileName, productText, ".h");
 
-        const QString productFactoryMethodsTextH = makeProductMethodsText(productsMethods[productIndex], "    ", "", " override;");
+        const QString productFactoryMethodsTextH = makeClassMethodsText(productsMethods[productIndex], "    ", "", " override;");
         for (int factoryIndex = 0; factoryIndex < factoriesNum; ++factoryIndex) {
             const QString factoryName = factories[factoryIndex];
             const QString productFactoryClassFileName = productClassFileName + factoryName.toLower();
@@ -253,7 +259,7 @@ public:\n\
 };\n\n").arg(productClassFileName).arg(productName).arg(factoryName).arg(productFactoryMethodsTextH) + includeGuardText2;
             initClassText(classTexts, classTextCounter, productFactoryClassFileName, productFactoryTextH, ".h");
 
-            const QString productFactoryMethodsTextCpp = makeProductMethodsText(productsMethods[productIndex], "",
+            const QString productFactoryMethodsTextCpp = makeClassMethodsText(productsMethods[productIndex], "",
                                                                                 productName+factoryName+"::", " {\n\n}\n");
             const QString productFactoryTextCpp = QString("\
 #include \"%1.h\"\n\n\
@@ -356,4 +362,99 @@ void CodeGenerator::genAbstractFactory(QVector<ClassText *> *classTexts, const i
                                              productsNum, factoriesNum, &classTextCounter);
     genAbstractFactoryFactoriesClassesHandCpp(classTexts, abstractFactoryName, factories, products, pointerType,
                                               factoriesNum, &classTextCounter);
+}
+
+QString makeAbstractBuilderText(const QString &abstractBuilderName, QVector<ClassMethod<QString> *> abstractBuilderMethodsVec) {
+    const QString abstractBuilderMethodsText = makeClassMethodsText(abstractBuilderMethodsVec, "    virtual ", "", " = 0;");
+    const QString text = QString("\
+class %1 {\n\
+public:\n\
+    %1() = default;\n\
+    virtual ~%1() = default;\n\
+    virtual void reset() = 0;\n\n\
+%2\n\
+};\n\n").arg(abstractBuilderName).arg(abstractBuilderMethodsText);
+    return text;
+}
+
+QString makeProductsText(QVector<QString> &productsNames, QVector<QVector<ClassMethod<QString> *>> &productsMethods) {
+    QString text = "";
+    const int productsNum = productsNames.count();
+    for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
+        const QString productMethodsText = makeClassMethodsText(productsMethods[productIndex], "   ", "", " { }");
+        const QString productName = productsNames[productIndex];
+        text += QString("\
+class %1 {\n\
+public:\n\
+%2\
+};\n\n").arg(productName).arg(productMethodsText);
+    }
+    return text;
+}
+
+QString makeBuildersText(QVector<QString> &buildersNames, QVector<QString> &productsNames,
+                         QVector<QVector<ClassMethod<QString> *>> &productsMethods, const QString &abstractBuilderName,
+                         QVector<ClassMethod<QString> *> &abstractBuilderMethodsVec) {
+    QString text = "";
+    const QString builderMethodsText = makeClassMethodsText(abstractBuilderMethodsVec, "    ", "", " override { }");
+    const int buildersNum = buildersNames.count();
+    for (int builderIndex = 0; builderIndex < buildersNum; ++builderIndex) {
+        const QString productName = productsNames[builderIndex];
+        const QString productConstructorArgs = makeArgsText(productsMethods[builderIndex][0]);
+        const QString productVarName = productName.toLower();
+        text += QString("\
+class %1: public %2 {\n\
+public:\n\
+    %1(): %2() {\n\
+        reset();\n\
+    }\n\
+    ~%1() override {\n\
+        delete %3;\n\
+    }\n\
+    void reset() override {\n\
+        delete %3;\n\
+        %3 = new %4(); // %5\n\
+    }\n\
+    %4* getResult() {\n\
+        %4* product = %3;\n\
+        reset();\n\
+        return product;\n\
+    }\n\n\
+%6\n\
+private:\n\
+    %4* %3;\n\
+};\n\n").arg(buildersNames[builderIndex]).arg(abstractBuilderName).arg(productVarName).arg(productName).arg(productConstructorArgs)
+                        .arg(builderMethodsText);
+    }
+    return text;
+}
+
+QString makeDirectorText(const QString &directorName, QVector<ClassMethod<QString> *> &directorMethodsVec, const QString &abstractBuilderName) {
+    const QString directorMethodsText = makeClassMethodsText(directorMethodsVec, "    ", "", " { }");
+    const QString text = QString("\
+class %1 {\n\
+public:\n\
+    %1(%2* builder) {\n\
+        this->builder = builder;\n\
+    }\n\
+    void changeBuilder(%2* builder) {\n\
+        this->builder = builder;\n\
+    }\n\n\
+%3\n\
+private:\n\
+    %2* builder;\n\
+};\n\n").arg(directorName).arg(abstractBuilderName).arg(directorMethodsText);
+    return text;
+}
+
+void CodeGenerator::genBuilder(QString *text, const QString &directorName, const QString &abstractBuilderName,
+                               QVector<QString> &buildersNames, QVector<QString> &productsNames,
+                               QVector<ClassMethod<QString> *> &directorMethodsVec, QVector<ClassMethod<QString> *> &abstractBuilderMethodsVec,
+                               QVector<QVector<ClassMethod<QString> *>> &productsMethods) const {
+    //first method of productMethod (QVector<ClassMethod<QString> *>) is a constructor
+    const QString abstractBuilderText = makeAbstractBuilderText(abstractBuilderName, abstractBuilderMethodsVec);
+    const QString productsText = makeProductsText(productsNames, productsMethods);
+    const QString buildersText = makeBuildersText(buildersNames, productsNames, productsMethods, abstractBuilderName, abstractBuilderMethodsVec);
+    const QString directorText = makeDirectorText(directorName, directorMethodsVec, abstractBuilderName);
+    *text = abstractBuilderText + productsText + buildersText + directorText;
 }

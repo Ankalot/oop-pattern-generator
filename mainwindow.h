@@ -38,7 +38,7 @@ private slots:
     void spinBoxDirectorMethodsNumChanged(int nextDirectorMethodsNum);
     void spinBoxAbstractBuilderMethodsNumChanged(int nextAbstractBuilderMethodsNum);
 
-    void changeMethodsCountInTable(int nextMethodsNum);
+    void changeMethodsCountInTable(int nextMethodsNum, bool withConstructor);
     void changeArgsCountInTable(int nextArgsNum);
 
     void changeNameInTable(QListWidgetItem *productNameItem);
@@ -62,8 +62,9 @@ private:
 
     void changeClassesNumInNamesList(QListWidget *listOfClasses, int nextClassesNum, const QString &className);
     void changeClassesNumInNamesListAndMethodsList(QListWidget *listOfClasses, QHBoxLayout *layoutMethodsList,
-                                                   int nextProductsNum, const QString &className);
-    void addItemToLayoutMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
+                                                   int nextProductsNum, const QString &className, bool withConstructor);
+    QTableWidget *makeMethodsTable(bool withConstructor, const QString &className = "");
+    void addItemToLayoutMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName, bool withConstructor);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
     void addSpinBoxNumArgsToCell(QTableWidget *table, int rowIndex, int columnIndex);
     void addRowToMethodsTable(unsigned i, QTableWidget *tableMethods);
@@ -73,6 +74,7 @@ private:
 
     bool generateSingleton(int exportType);
     bool generateAbstractFactory(int exportType);
+    bool generateBuilder(int exportType);
 
     bool makeParseData();
     bool parseSingleton();

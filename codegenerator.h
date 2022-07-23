@@ -27,6 +27,13 @@ public:
                             QVector<QString> &factories, QVector<QString> &products,
                             QVector<QVector<ClassMethod<QString> *>> &productsMethods) const;
 
+    // .cpp
+    void genBuilder(QString *text, const QString &directorName, const QString &abstractBuilderName, QVector<QString> &buildersNames,
+                    QVector<QString> &productsNames, QVector<ClassMethod<QString> *> &directorMethodsVec,
+                    QVector<ClassMethod<QString> *> &abstractBuilderMethodsVec, QVector<QVector<ClassMethod<QString> *>> &productsMethods) const;
+    // .h and .cpp for each class
+    // coming soon
+
 private:
     bool includeGuard;
     QString includeGuardText1;
