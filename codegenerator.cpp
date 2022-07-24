@@ -88,8 +88,11 @@ QString makeClassMethodsText(QVector<ClassMethod<QString> *> &classMethods, cons
         if (classMethods[classIndex]->constFlag()) {
             classMethodsText += "const ";
         }
+        const QString classMethodType = classMethods[classIndex]->getType();
         classMethodsText += classMethods[classIndex]->getType();
-        classMethodsText += " " + s2 + classMethods[classIndex]->getName() + "(";
+        if (classMethodType != "")
+            classMethodsText += " ";
+        classMethodsText += s2 + classMethods[classIndex]->getName() + "(";
         classMethodsText += makeArgsText(classMethods[classIndex]);
         classMethodsText += ")" + s3 + "\n";
     }
@@ -381,7 +384,7 @@ QString makeProductsText(QVector<QString> &productsNames, QVector<QVector<ClassM
     QString text = "";
     const int productsNum = productsNames.count();
     for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
-        const QString productMethodsText = makeClassMethodsText(productsMethods[productIndex], "   ", "", " { }");
+        const QString productMethodsText = makeClassMethodsText(productsMethods[productIndex], "    ", "", " { }");
         const QString productName = productsNames[productIndex];
         text += QString("\
 class %1 {\n\
@@ -457,4 +460,134 @@ void CodeGenerator::genBuilder(QString *text, const QString &directorName, const
     const QString buildersText = makeBuildersText(buildersNames, productsNames, productsMethods, abstractBuilderName, abstractBuilderMethodsVec);
     const QString directorText = makeDirectorText(directorName, directorMethodsVec, abstractBuilderName);
     *text = abstractBuilderText + productsText + buildersText + directorText;
+}
+
+void CodeGenerator::genAbstractBuilderText(QVector<ClassText *> *classTexts,  const QString &abstractBuilderName,
+                                           QVector<ClassMethod<QString> *> abstractBuilderMethodsVec) const {
+    const QString abstractBuilderMethodsText = makeClassMethodsText(abstractBuilderMethodsVec, "    virtual ", "", " = 0;");
+    const QString text = includeGuardText1.arg(abstractBuilderName.toUpper()) + QString("\
+class %1 {\n\
+public:\n\
+    %1() = default;\n\
+    virtual ~%1() = default;\n\
+    virtual void reset() = 0;\n\n\
+%2\n\
+};\n\n").arg(abstractBuilderName).arg(abstractBuilderMethodsText) + includeGuardText2;
+    ClassText *abstractBuilderH = new ClassText(abstractBuilderName.toLower(), text, ".h");
+    classTexts->append(abstractBuilderH);
+}
+
+void CodeGenerator::genProductsText(QVector<ClassText *> *classTexts, QVector<QString> &productsNames,
+                                    QVector<QVector<ClassMethod<QString> *>> &productsMethods) const {
+    const int productsNum = productsNames.count();
+    for (int productIndex = 0; productIndex < productsNum; ++productIndex) {
+        const QString productMethodsTextH = makeClassMethodsText(productsMethods[productIndex], "   ", "", ";");
+        const QString productName = productsNames[productIndex];
+        const QString textH = includeGuardText1.arg(productName.toUpper()) + QString("\
+class %1 {\n\
+public:\n\
+%2\
+};\n\n").arg(productName).arg(productMethodsTextH) + includeGuardText2;
+        ClassText *productH = new ClassText(productName.toLower(), textH, ".h");
+        classTexts->append(productH);
+
+        const QString productMethodsTextCpp = makeClassMethodsText(productsMethods[productIndex], "", productName + "::", " {\n\n}\n");
+        const QString textCpp = QString("\
+#include \"%1.h\"\n\n\
+%2").arg(productName.toLower()).arg(productMethodsTextCpp);
+        ClassText *productCpp = new ClassText(productName.toLower(), textCpp, ".cpp");
+        classTexts->append(productCpp);
+    }
+}
+
+void CodeGenerator::genBuildersText(QVector<ClassText *> *classTexts, QVector<QString> &buildersNames, QVector<QString> &productsNames,
+                                    QVector<QVector<ClassMethod<QString> *>> &productsMethods, const QString &abstractBuilderName,
+                                    QVector<ClassMethod<QString> *> &abstractBuilderMethodsVec) const {
+    const QString builderMethodsTextH = makeClassMethodsText(abstractBuilderMethodsVec, "    ", "", " override;");
+    const int buildersNum = buildersNames.count();
+    for (int builderIndex = 0; builderIndex < buildersNum; ++builderIndex) {
+        const QString productName = productsNames[builderIndex];
+        const QString productConstructorArgs = makeArgsText(productsMethods[builderIndex][0]);
+        const QString productVarName = productName.toLower();
+        const QString builderName = buildersNames[builderIndex];
+        const QString builderMethodsTextCpp = makeClassMethodsText(abstractBuilderMethodsVec, "", builderName + "::", " {\n\n}\n");
+        const QString textH = includeGuardText1.arg(builderName.toUpper()) + QString("\
+#include \"%1.h\"\n\
+#include \"%2.h\"\n\n\
+class %3: public %4 {\n\
+public:\n\
+    %3();\n\
+    ~%3() override;\n\
+    void reset() override;\n\
+    %5* getResult();\n\n\
+%6\n\
+private:\n\
+    %5* %8;\n\
+};\n\n").arg(productName.toLower()).arg(abstractBuilderName.toLower()).arg(builderName).arg(abstractBuilderName)
+                .arg(productName).arg(builderMethodsTextH).arg(productVarName) + includeGuardText2;
+        ClassText *builderH = new ClassText(builderName.toLower(), textH, ".h");
+        classTexts->append(builderH);
+
+        const QString textCpp = QString("\
+#include \"%1.h\"\n\n\
+%2::%2(): %3() {\n\
+    reset();\n\
+}\n\n\
+%2::~%2() {\n\
+    delete %4;\n\
+}\n\n\
+void %2::reset() {\n\
+    delete %4;\n\
+    %4 = new %5(); // %6\n\
+}\n\n\
+%5* %2::getResult() {\n\
+    %5* product = %4;\n\
+    reset();\n\
+    return product;\n\
+}\n\n\
+%7\n").arg(builderName.toLower()).arg(builderName).arg(abstractBuilderName).arg(productVarName)
+                .arg(productName).arg(productConstructorArgs).arg(builderMethodsTextCpp);
+        ClassText *builderCpp = new ClassText(builderName.toLower(), textCpp, ".cpp");
+        classTexts->append(builderCpp);
+    }
+}
+
+void CodeGenerator::genDirectorText(QVector<ClassText *> *classTexts, const QString &directorName,
+                                    QVector<ClassMethod<QString> *> &directorMethodsVec, const QString &abstractBuilderName) const {
+    const QString directorMethodsTextH = makeClassMethodsText(directorMethodsVec, "    ", "", ";");
+    const QString directorMethodsTextCpp = makeClassMethodsText(directorMethodsVec, "", directorName + "::", " {\n\n}\n");
+    const QString textH = includeGuardText1.arg(directorName.toUpper()) + QString("\
+#include \"%1.h\"\n\n\
+class %2 {\n\
+public:\n\
+    %2(%3* builder);\n\
+    void changeBuilder(%3* builder);\n\n\
+%4\n\
+private:\n\
+    %3* builder;\n\
+};\n\n").arg(abstractBuilderName.toLower()).arg(directorName).arg(abstractBuilderName).arg(directorMethodsTextH) + includeGuardText2;
+    ClassText *directorH = new ClassText(directorName.toLower(), textH, ".h");
+    classTexts->append(directorH);
+
+    const QString textCpp = QString("\
+#include \"%1.h\"\n\n\
+%2::%2(%3* builder) {\n\
+    this->builder = builder;\n\
+}\n\n\
+void %2::changeBuilder(%3* builder) {\n\
+    this->builder = builder;\n\
+}\n\n\
+%4\n").arg(directorName.toLower()).arg(directorName).arg(abstractBuilderName).arg(directorMethodsTextCpp);
+    ClassText *directorCpp = new ClassText(directorName.toLower(), textCpp, ".cpp");
+    classTexts->append(directorCpp);
+}
+
+void CodeGenerator::genBuilder(QVector<ClassText *> *classTexts, const QString &directorName, const QString &abstractBuilderName,
+                               QVector<QString> &buildersNames, QVector<QString> &productsNames,
+                               QVector<ClassMethod<QString> *> &directorMethodsVec, QVector<ClassMethod<QString> *> &abstractBuilderMethodsVec,
+                               QVector<QVector<ClassMethod<QString> *>> &productsMethods) const {
+    genAbstractBuilderText(classTexts, abstractBuilderName, abstractBuilderMethodsVec);
+    genProductsText(classTexts, productsNames, productsMethods);
+    genBuildersText(classTexts, buildersNames, productsNames, productsMethods, abstractBuilderName, abstractBuilderMethodsVec);
+    genDirectorText(classTexts, directorName, directorMethodsVec, abstractBuilderName);
 }

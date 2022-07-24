@@ -525,9 +525,22 @@ bool MainWindow::generateBuilder(int exportType) {
             if (!writeTextToFile(folderPath + fileName + ".cpp", text))
                 success = false;
             break;
-        } case H_AND_CPP_FILES:
-            // coming soon
+        } case H_AND_CPP_FILES: {
+            QVector<ClassText *> classTexts;
+            codeGenerator->genBuilder(&classTexts, directorName, abstractBuilderName, buildersNames, productsNames,
+                                      directorMethodsVec, abstractBuilderMethodsVec, productsMethodsVec);
+            const QString folderPath = getExportFolderPath();
+            const int classTextsNum = classTexts.count();
+            for (int classTextIndex = 0; classTextIndex < classTextsNum; ++classTextIndex) {
+                if (!writeTextToFile(folderPath + classTexts[classTextIndex]->getFileName() + \
+                                     classTexts[classTextIndex]->getFileType(), classTexts[classTextIndex]->getText())) {
+                    success = false;
+                    continue;
+                }
+            }
+            qDeleteAll(classTexts);
             break;
+        }
     }
 
     for (int productItemIndex = 0; productItemIndex < productsNum; ++productItemIndex) {
