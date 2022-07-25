@@ -14,20 +14,20 @@ QT_END_NAMESPACE
 template<class T>
 class ClassMethod {
 public:
-    ClassMethod(std::conditional_t<std::is_same<T, Element *>::value, Element*, bool> isConst, T type, T name, int argsNum = 0);
+    ClassMethod(std::conditional_t<std::is_same<T, ElementPtr>::value, ElementPtr, bool> isConst, T type, T name, int argsNum = 0);
     ~ClassMethod();
 
     void setArgument(Argument<T> *arg, int i);
     void addArgument(Argument<T> *arg);
 
-    std::conditional_t<std::is_same<T, Element *>::value, Element*, bool> constFlag() const;
+    std::conditional_t<std::is_same<T, ElementPtr>::value, ElementPtr, bool> constFlag() const;
     const T &getType() const;
     const T &getName() const;
     int getArgsNum() const;
     Argument<T> *getArgument(int i) const;
 
 private:
-    std::conditional_t<std::is_same<T, Element *>::value, Element*, bool> isConst;
+    std::conditional_t<std::is_same<T, ElementPtr>::value, ElementPtr, bool> isConst;
     T type;
     T name;
     int argsNum;
@@ -35,7 +35,7 @@ private:
 };
 
 template<class T>
-ClassMethod<T>::ClassMethod(std::conditional_t<std::is_same<T, Element *>::value, Element*, bool> isConst, T type, T name, int argsNum) {
+ClassMethod<T>::ClassMethod(std::conditional_t<std::is_same<T, ElementPtr>::value, ElementPtr, bool> isConst, T type, T name, int argsNum) {
     this->isConst = isConst;
     this->type = type;
     this->name = name;
@@ -43,16 +43,7 @@ ClassMethod<T>::ClassMethod(std::conditional_t<std::is_same<T, Element *>::value
 }
 
 template<class T>
-ClassMethod<T>::~ClassMethod() {
-    if constexpr (std::is_same<T, Element *>::value)
-        delete isConst;
-    if constexpr (std::is_pointer<T>::value) {
-        delete type;
-        delete name;
-    }
-    qDeleteAll(arguments);
-    arguments.clear();
-}
+ClassMethod<T>::~ClassMethod() { }
 
 template<class T>
 void ClassMethod<T>::setArgument(Argument<T> *arg, int i) {
@@ -65,7 +56,7 @@ void ClassMethod<T>::addArgument(Argument<T> *arg) {
 }
 
 template<class T>
-std::conditional_t<std::is_same<T, Element *>::value, Element*, bool> ClassMethod<T>::constFlag() const {
+std::conditional_t<std::is_same<T, ElementPtr>::value, ElementPtr, bool> ClassMethod<T>::constFlag() const {
     return isConst;
 }
 

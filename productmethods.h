@@ -8,6 +8,8 @@ QT_BEGIN_NAMESPACE
 namespace Parser { class ProductMethods; }
 QT_END_NAMESPACE
 
+using ClassMethodTypePtr = ClassMethod<std::shared_ptr<Element>> *;
+
 class Element;
 
 class ProductMethods: public BaseElement
@@ -16,14 +18,14 @@ public:
     ProductMethods(unsigned num = 0);
     ~ProductMethods() override;
 
-    ClassMethod<Element *> *&operator[](unsigned i);
+    ClassMethodTypePtr &operator[](unsigned i);
 
-    void addMethod(ClassMethod<Element *> *method);
-    void setMethod(int index, ClassMethod<Element *> *method);
+    void addMethod(ClassMethodTypePtr method);
+    void setMethod(int index, ClassMethodTypePtr method);
     int getCount();
 
 private:
-    QVector<ClassMethod<Element *> *>  methods;
+    QVector<ClassMethodTypePtr>  methods;
 };
 
 #endif // PRODUCTSELEMENT_H

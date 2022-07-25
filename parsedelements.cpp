@@ -197,12 +197,12 @@ bool findProductsClassText(const QHash<QString, QVector<ClassText *>> &parseData
     return true;
 }
 
-Element *makeElementFromNameAndPos(const QString &name, const int pos, ClassText *text) {
+ElementPtr makeElementFromNameAndPos(const QString &name, const int pos, ClassText *text) {
     QHash<QString, QVector<int>> includes;
     QVector<int> posInText(1);
     posInText[0] = pos;
     includes.insert(text->getFileName(), posInText);
-    return new Element(name, includes);
+    return std::make_shared<Element>(Element(name, includes));
 }
 
 bool findClassBody(QString *classBody, int *classBodyPos, const QString &text) {
@@ -237,12 +237,12 @@ void findProductMethods(ProductMethods **prodMethodsElement, ClassText *productH
         int isConstPos = classBodyPos + match.capturedStart("const");
         if (match.captured("const") == "")
             --isConstPos; //actually "" does not have a symbol position, so this is a crutch
-        Element *isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
-        Element *typeElement = makeElementFromNameAndPos(match.captured("type"), classBodyPos +
+        ElementPtr isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
+        ElementPtr typeElement = makeElementFromNameAndPos(match.captured("type"), classBodyPos +
                                                          match.capturedStart("type"), productH);
-        Element *nameElement = makeElementFromNameAndPos(match.captured("name"), classBodyPos +
+        ElementPtr nameElement = makeElementFromNameAndPos(match.captured("name"), classBodyPos +
                                                          match.capturedStart("name"), productH);
-        ClassMethod<Element *> *method = new ClassMethod<Element *>(isConstElement, typeElement, nameElement);
+        ClassMethod<ElementPtr> *method = new ClassMethod<ElementPtr>(isConstElement, typeElement, nameElement);
 
         const QString argsBody = match.captured("args");
         const int argsBodyPos = classBodyPos + match.capturedStart("args");
@@ -252,10 +252,10 @@ void findProductMethods(ProductMethods **prodMethodsElement, ClassText *productH
             int isConstPos = argsBodyPos + match.capturedStart("const");
             if (match.captured("const") == "")
                 --isConstPos; //actually "" does not have a symbol position, so this is a crutch
-            Element *isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
-            Element *typeElement = makeElementFromNameAndPos(match.captured("type"), argsBodyPos + match.capturedStart("type"), productH);
-            Element *nameElement = makeElementFromNameAndPos(match.captured("name"), argsBodyPos + match.capturedStart("name"), productH);
-            Argument<Element *> *argument = new Argument<Element *>(isConstElement, typeElement, nameElement);
+            ElementPtr isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, productH);
+            ElementPtr typeElement = makeElementFromNameAndPos(match.captured("type"), argsBodyPos + match.capturedStart("type"), productH);
+            ElementPtr nameElement = makeElementFromNameAndPos(match.captured("name"), argsBodyPos + match.capturedStart("name"), productH);
+            Argument<ElementPtr> *argument = new Argument<ElementPtr>(isConstElement, typeElement, nameElement);
             method->addArgument(argument);
         }
 
@@ -263,7 +263,7 @@ void findProductMethods(ProductMethods **prodMethodsElement, ClassText *productH
     }
 }
 
-bool isThisMethod(ClassMethod<Element *> *method, const QString &isConst, const QString &type, const QString &name,
+bool isThisMethod(ClassMethod<ElementPtr> *method, const QString &isConst, const QString &type, const QString &name,
                   const QVector<QString> &argsConst, const QVector<QString> &argsType, const QVector<QString> &argsName) {
     if (method->constFlag()->getText() != isConst)
         return false;
@@ -273,7 +273,7 @@ bool isThisMethod(ClassMethod<Element *> *method, const QString &isConst, const 
         return false;
     const int argsNum = method->getArgsNum();
     for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
-        Argument<Element *> *arg = method->getArgument(argIndex);
+        Argument<ElementPtr> *arg = method->getArgument(argIndex);
         if (arg->constFlag()->getText() != argsConst[argIndex])
             return false;
         if (arg->getType()->getText() != argsType[argIndex])
@@ -293,7 +293,7 @@ bool addInfoAboutMethod(ProductMethods *prodMethodsElement, const QString &isCon
     const int methodsNum = prodMethodsElement->getCount();
     QVector<int> pos = QVector<int>(1);
     for (int methodIndex = 0; methodIndex < methodsNum; ++methodIndex) {
-        ClassMethod<Element *> *method = (*prodMethodsElement)[methodIndex];
+        ClassMethod<ElementPtr> *method = (*prodMethodsElement)[methodIndex];
         if (isThisMethod(method, isConst, type, name, argsConst, argsType, argsName)) {
             pos[0] = isConstPos;
             method->constFlag()->addInclude(fileName, pos);
@@ -303,7 +303,7 @@ bool addInfoAboutMethod(ProductMethods *prodMethodsElement, const QString &isCon
             method->getName()->addInclude(fileName, pos);
             const int argsNum = method->getArgsNum();
             for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
-                Argument<Element *> *arg = method->getArgument(argIndex);
+                Argument<ElementPtr> *arg = method->getArgument(argIndex);
                 pos[0] = argsConstPos[argIndex];
                 arg->constFlag()->addInclude(fileName, pos);
                 pos[0] = argsTypePos[argIndex];
