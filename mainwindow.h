@@ -6,8 +6,13 @@
 #include <QMainWindow>
 #include <QTableWidget>
 #include <QSettings>
+#include <QSpinBox>
 
 class CodeGenerator;
+class ClassText;
+class ParsedElements;
+class Element;
+class VectorElement;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -35,12 +40,22 @@ private slots:
 
     void changeProductNameInTable(QListWidgetItem *productNameItem);
 
-    void on_actionExport_to_triggered();
+    void on_actionExport_triggered();
+
+    void on_checkBoxImport_clicked(bool checked);
+
+    void on_pushBtnImport_clicked();
+
+    void importAccepted(const QHash<QString, QStringList> &data);
 
 private:
     Ui::MainWindow *ui;
     CodeGenerator *codeGenerator;
     QSettings *settings;
+    QHash<QString, QStringList> importData;
+    QHash<QString, QVector<ClassText *>> parseData;
+    ParsedElements *parsedPattern = nullptr;
+    QVector<QWidget *> freezedWidgets;
 
     void addItemToLayoutProductsMethodsList(QHBoxLayout *gridLauoutProductsMethodsList, const QString &productName);
     void delItemFromLayoutProductsMethodsList(QHBoxLayout *layoutProductsMethodsList, int index);
@@ -51,6 +66,22 @@ private:
 
     bool generateSingleton(int exportType);
     bool generateAbstractFactory(int exportType);
+
+    bool makeParseData();
+    bool parseSingleton();
+    bool parseAbstractFactory();
+
+    void unfreezeUi();
+    void initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className);
+    void initParsedAbstractFactoryAndUi(QSpinBox **spinBoxNumFactories, QSpinBox **spinBoxNumProducts,
+                                        QLineEdit **lineEditFactoryName, QListWidget **listOfFactories,
+                                        QListWidget **listOfProducts, QHBoxLayout **layoutProductsMethodsList,
+                                        Element **abstractFactoryName, VectorElement **factoriesNames,
+                                        VectorElement **productsNames, VectorElement **productsMethods);
+    void writeParsedSingletonToUi();
+    void writeParsedAbstractFactoryToUi();
+    void writeUiToParsedSingleton();
+    void writeUiToParsedAbstractFactory();
 
     QString getExportFolderPath();
     bool writeTextToFile(const QString &fileFullName, const QString &text);
