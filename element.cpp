@@ -1,6 +1,8 @@
 #include "element.h"
 #include "baseelement.h"
 
+#include <QDebug>
+
 Element::Element(const QString &text, const QHash<QString, QVector<int>> &includes): BaseElement() {
     initText = text;
     this->text = text;
@@ -65,7 +67,15 @@ void Element::setText(const QString &newText) {
             counter = 0;
             while (j.hasNext()) {
                 j.next();
-                j.value()->includes[fileName][posIndexes[counter]] = newPoses[counter];
+                if (!j.value()->includes.contains(fileName)) {
+                    qWarning() << "Error setting text";
+                    continue;
+                }
+                QVector<int> *elementIncludesInFile = &j.value()->includes[fileName];
+                assert(posIndexes.count() > counter);
+                assert(elementIncludesInFile->count() > posIndexes[counter]);
+                assert(newPoses.count() > counter);
+                (*elementIncludesInFile)[posIndexes[counter]] = newPoses[counter];
                 ++counter;
             }
         }

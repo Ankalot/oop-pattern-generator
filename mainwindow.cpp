@@ -443,7 +443,7 @@ void MainWindow::writeUiToParsedAbstractFactory() {
 
             const int argsNum = (*productMethods)[methodIndex]->getArgsNum();
             for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
-                Argument<Element *> *arg = (*productMethods)[methodIndex]->getArgument(argIndex);
+                Argument<ElementPtr> *arg = (*productMethods)[methodIndex]->getArgument(argIndex);
                 QCheckBox *checkBoxConst = getCheckBoxProductMethodConst(tableProductMethods->cellWidget(methodIndex, 4+argIndex*3));
 
                 const QString isConst = checkBoxConst->isChecked() ? "const" : "";
@@ -1053,7 +1053,7 @@ void MainWindow::writeParsedAbstractFactoryToUi() {
             tableProductMethods->item(methodIndex, 3)->setText(methodName);
 
             for (int argIndex = 0; argIndex < argsNum; ++argIndex) {
-                Argument<Element *> *arg = (*productMethods)[methodIndex]->getArgument(argIndex);
+                Argument<ElementPtr> *arg = (*productMethods)[methodIndex]->getArgument(argIndex);
                 QCheckBox *checkBoxConst = getCheckBoxProductMethodConst(tableProductMethods->cellWidget(methodIndex, 4+argIndex*3));
                 bool isConst = arg->constFlag()->getText() == "const";
                 checkBoxConst->setChecked(isConst);
