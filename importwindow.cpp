@@ -9,7 +9,7 @@
 #include <QCheckBox>
 #include <QFileDialog>
 
-void ImportWindow::pushBtnPart_clicked() {
+void ImportWindow::pushBtnPart_clicked(int importIndex) {
     QFileDialog fileDialog(this);
     fileDialog.setNameFilter(tr("Text files (*.cpp *.h)"));
     fileDialog.setFileMode(QFileDialog::ExistingFiles);
@@ -34,10 +34,11 @@ void ImportWindow::pushBtnPart_clicked() {
     if (!indicator)
         qCritical() << "indicator not found";
     indicator->setState(true);
-    ++missingImportsNum;
+    readyImports[importIndex] = true;
 }
 
-void ImportWindow::makeImportUIPart(const QString &name, const QString &text) {
+void ImportWindow::makeImportUIPart(const QString &name, const QString &text, int importIndex) {
+    readyImports[importIndex] = false;
     QWidget *partContent = new QWidget;
     partContent->setObjectName(name);
     QHBoxLayout *layoutPart = new QHBoxLayout;
@@ -53,27 +54,29 @@ void ImportWindow::makeImportUIPart(const QString &name, const QString &text) {
     layoutPart->addWidget(pushBtnPart);
     layoutPart->addWidget(indicator);
 
-    connect(pushBtnPart, SIGNAL(clicked()), this, SLOT(pushBtnPart_clicked()));
+    connect(pushBtnPart, &QPushButton::clicked, this, [this, importIndex]() {
+        pushBtnPart_clicked(importIndex);
+    });
 }
 
 void ImportWindow::initSingletonImportUI() {
-    missingImportsNum = -1;
-    makeImportUIPart("singleton", "Singleton class .h and .cpp");
+    readyImports.resize(1);
+    makeImportUIPart("singleton", "Singleton class .h and .cpp", 0);
 }
 
 void ImportWindow::initAbstractFactoryImportUI() {
-    missingImportsNum = -3;
-    makeImportUIPart("abstractFactory", "Abstract factory class .h (1 file)");
-    makeImportUIPart("factories", "Factories classes .h and .cpp (1 class per file)");
-    makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)");
+    readyImports.resize(3);
+    makeImportUIPart("abstractFactory", "Abstract factory class .h (1 file)", 0);
+    makeImportUIPart("factories", "Factories classes .h and .cpp (1 class per file)", 1);
+    makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)", 2);
 }
 
 void ImportWindow::initBuilderImportUI() {
-    missingImportsNum = -4;
-    makeImportUIPart("director", "Director class .h and .cpp (2 files)");
-    makeImportUIPart("abstractBuilder", "Abstract builder class .h (1 file)");
-    makeImportUIPart("builders", "Builders classes .h and .cpp (1 class per file)");
-    makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)");
+    readyImports.resize(4);
+    makeImportUIPart("director", "Director class .h and .cpp (2 files)", 0);
+    makeImportUIPart("abstractBuilder", "Abstract builder class .h (1 file)", 1);
+    makeImportUIPart("builders", "Builders classes .h and .cpp (1 class per file)", 2);
+    makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)", 3);
 }
 
 ImportWindow::ImportWindow(QWidget *parent, int patternType) :
@@ -112,7 +115,7 @@ ImportWindow::~ImportWindow() {
 }
 
 void ImportWindow::on_pushBtnAccept_clicked() {
-    if (!missingImportsNum) {
+    if (readyImports.indexOf(false) == -1) {
         sendImportsToMainWindow(importData);
         close();
     } else {
