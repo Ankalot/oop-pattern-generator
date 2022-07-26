@@ -534,9 +534,9 @@ void MainWindow::writeUiToParsedBuilder() {
         findWidgetsInProductMethodsContentItem(layoutProductsMethods->itemAt(productIndex), &spinBoxNumMethods,
                                                &tableProductMethods);
 
-        const int methodsNum = spinBoxNumMethods->value() - 1; // don't count constructor
+        const int methodsNum = spinBoxNumMethods->value(); // don't count constructor
         writeParsedConstructorFromTable(tableProductMethods, (*productMethods)[0]);
-        for (int methodIndex = 0; methodIndex < methodsNum; ++methodIndex) {
+        for (int methodIndex = 1; methodIndex <= methodsNum; ++methodIndex) {
             writeParsedMethodFromTable(tableProductMethods, methodIndex, (*productMethods)[methodIndex]);
         }
     }
@@ -1261,7 +1261,7 @@ void MainWindow::comboBox_indexChanged() {
             connect(spinBoxDirectorMethodsNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxDirectorMethodsNumChanged(int)));
             connect(spinBoxAbstractBuilderMethodsNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxAbstractBuilderMethodsNumChanged(int)));
             connect(spinBoxBuildersNum, SIGNAL(valueChanged(int)), this, SLOT(spinBoxNumBuildersChanged(int)));
-            connect(listProductsNames, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(changeNameInTableAndConstrctorName(QListWidgetItem*)));
+            connect(listProductsNames, SIGNAL(itemChanged(QListWidgetItem*)), this, SLOT(changeNameInTableAndConstructorName(QListWidgetItem*)));
             break;
         } default:
             qWarning() << "Unexpected pattern type";
@@ -1269,7 +1269,7 @@ void MainWindow::comboBox_indexChanged() {
     }
 }
 
-void MainWindow::changeNameInTableAndConstrctorName(QListWidgetItem *classNameItem) {
+void MainWindow::changeNameInTableAndConstructorName(QListWidgetItem *classNameItem) {
     changeNameInTable(classNameItem);
     changeConstructorNameInTable(classNameItem);
 }
@@ -1607,7 +1607,7 @@ void MainWindow::writeParsedBuilderToUi() {
         spinBoxNumMethods->setValue(methodsNum);
         freezeWidget(spinBoxNumMethods);
         writeParsedConstructorToTable(tableProductMethods, (*productMethods)[0]);
-        for (int methodIndex = 0; methodIndex < methodsNum; ++methodIndex) {
+        for (int methodIndex = 1; methodIndex <= methodsNum; ++methodIndex) {
             writeParsedMethodToTable(tableProductMethods, methodIndex, (*productMethods)[methodIndex]);
         }
     }

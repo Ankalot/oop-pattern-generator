@@ -46,7 +46,7 @@ private slots:
 
     void changeNameInTable(QListWidgetItem *classNameItem);
     void changeConstructorNameInTable(QListWidgetItem *classNameItem);
-    void changeNameInTableAndConstrctorName(QListWidgetItem *classNameItem);
+    void changeNameInTableAndConstructorName(QListWidgetItem *classNameItem);
 
     void on_actionExport_triggered();
 
