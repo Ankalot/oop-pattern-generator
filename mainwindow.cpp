@@ -1584,6 +1584,7 @@ void MainWindow::writeParsedBuilderToUi() {
             qCritical() << "productNameElement is not an Element in productsNamesElement";
 
         listBuildersNames->item(i)->setText(builderNameElement->getText());
+        listProductsNames->setCurrentRow(i);
         listProductsNames->item(i)->setText(productNameElement->getText());
     }
 
