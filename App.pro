@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     baseelement.cpp \
+    classmethods.cpp \
     classtext.cpp \
     codegenerator.cpp \
     element.cpp \
@@ -26,13 +27,13 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     parsedelements.cpp \
-    productmethods.cpp \
     vectorelement.cpp
 
 HEADERS += \
     argument.h \
     baseelement.h \
     classmethod.h \
+    classmethods.h \
     classtext.h \
     codegenerator.h \
     element.h \
@@ -41,7 +42,6 @@ HEADERS += \
     indicator.h \
     mainwindow.h \
     parsedelements.h \
-    productmethods.h \
     vectorelement.h
 
 FORMS += \

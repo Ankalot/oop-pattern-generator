@@ -8,11 +8,14 @@
 #include <QSettings>
 #include <QSpinBox>
 
+#include "classmethod.h"
+
 class CodeGenerator;
 class ClassText;
 class ParsedElements;
 class Element;
 class VectorElement;
+class BaseElement;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -41,7 +44,9 @@ private slots:
     void changeMethodsCountInTable(int nextMethodsNum, bool withConstructor);
     void changeArgsCountInTable(int nextArgsNum);
 
-    void changeNameInTable(QListWidgetItem *productNameItem);
+    void changeNameInTable(QListWidgetItem *classNameItem);
+    void changeConstructorNameInTable(QListWidgetItem *classNameItem);
+    void changeNameInTableAndConstrctorName(QListWidgetItem *classNameItem);
 
     void on_actionExport_triggered();
 
@@ -79,18 +84,22 @@ private:
     bool makeParseData();
     bool parseSingleton();
     bool parseAbstractFactory();
+    bool parseBuilder();
 
+    void freezeWidget(QWidget *widget);
     void unfreezeUi();
-    void initParsedSingletonAndUi(QLineEdit **lineEditSnglt, Element **className);
-    void initParsedAbstractFactoryAndUi(QSpinBox **spinBoxNumFactories, QSpinBox **spinBoxNumProducts,
-                                        QLineEdit **lineEditFactoryName, QListWidget **listOfFactories,
-                                        QListWidget **listOfProducts, QHBoxLayout **layoutProductsMethodsList,
-                                        Element **abstractFactoryName, VectorElement **factoriesNames,
-                                        VectorElement **productsNames, VectorElement **productsMethods);
+    void writeParsedConstructorToTable(QTableWidget *tableClassMethods, ClassMethod<ElementPtr> *classConstructor);
+    void writeParsedMethodToTable(QTableWidget *tableClassMethods, int methodIndex, ClassMethod<ElementPtr> *classMethod);
+    void initParsedPatternAndUi(QVector<QObject **> &uiElements, QStringList &uiElementsName,
+                                QVector<BaseElement **> &elements, QStringList &elementsName);
     void writeParsedSingletonToUi();
     void writeParsedAbstractFactoryToUi();
+    void writeParsedBuilderToUi();
+    void writeParsedConstructorFromTable(QTableWidget *tableClassMethods, ClassMethod<ElementPtr> *classConstructor);
+    void writeParsedMethodFromTable(QTableWidget *tableClassMethods, int methodIndex, ClassMethod<ElementPtr> *classMethod);
     void writeUiToParsedSingleton();
     void writeUiToParsedAbstractFactory();
+    void writeUiToParsedBuilder();
 
     QString getExportFolderPath();
     bool writeTextToFile(const QString &fileFullName, const QString &text);

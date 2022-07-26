@@ -33,10 +33,11 @@ private:
     int missingImportsNum = 0;
     QHash<QString, QStringList> importData;
 
-    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY };
+    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY, BUILDER };
 
     void initSingletonImportUI();
     void initAbstractFactoryImportUI();
+    void initBuilderImportUI();
     void makeImportUIPart(const QString &name, const QString &text);
 
 };

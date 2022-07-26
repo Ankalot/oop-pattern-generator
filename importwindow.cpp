@@ -68,6 +68,14 @@ void ImportWindow::initAbstractFactoryImportUI() {
     makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)");
 }
 
+void ImportWindow::initBuilderImportUI() {
+    missingImportsNum = -4;
+    makeImportUIPart("director", "Director class .h and .cpp (2 files)");
+    makeImportUIPart("abstractBuilder", "Abstract builder class .h (1 file)");
+    makeImportUIPart("builders", "Builders classes .h and .cpp (1 class per file)");
+    makeImportUIPart("products", "Products classes .h and .cpp (1 class per file)");
+}
+
 ImportWindow::ImportWindow(QWidget *parent, int patternType) :
     QDialog(parent), ui(new Ui::ImportWindow) {
     ui->setupUi(this);
@@ -86,6 +94,9 @@ ImportWindow::ImportWindow(QWidget *parent, int patternType) :
             break;
         case ABSTRACT_FACTORY:
             initAbstractFactoryImportUI();
+            break;
+        case BUILDER:
+            initBuilderImportUI();
             break;
         default:
             qWarning() << "Unexpected pattern type";

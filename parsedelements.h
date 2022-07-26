@@ -23,7 +23,7 @@ public:
 
 private:
     bool ok = false;
-    enum PATTERN_TYPE { SINLETON = 1, ABSTRACT_FACTORY };
+    enum PATTERN_TYPE { SINLETON = 1, ABSTRACT_FACTORY, BUILDER };
     int patternType;
     QHash<QString, QVector<ClassText *>> parseData;
     QHash<QString, BaseElement *> elements;
@@ -31,9 +31,11 @@ private:
     bool writeElementsToFile(ClassText *classText);
     bool rewriteSingletonInFiles();
     bool rewriteAbstractFactoryInFiles();
+    bool rewriteBuilderInFiles();
 
     void parseSingleton();
     void parseAbstractFactory();
+    void parseBuilder();
 };
 
 #endif // PARSEDELEMENTS_H
