@@ -21,7 +21,7 @@ private slots:
 
     void on_pushBtnCancel_clicked();
 
-    void pushBtnPart_clicked();
+    void pushBtnPart_clicked(int importIndex);
 
 signals:
     void sendImportsToMainWindow(const QHash<QString, QStringList> &importData);
@@ -30,14 +30,15 @@ private:
     Ui::ImportWindow *ui;
     QStatusBar *statusBar;
 
-    int missingImportsNum = 0;
+    QVector<bool> readyImports;
     QHash<QString, QStringList> importData;
 
-    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY };
+    enum PATTERN_TYPE { NO_PATTERN, SINGLETON, ABSTRACT_FACTORY, BUILDER };
 
     void initSingletonImportUI();
     void initAbstractFactoryImportUI();
-    void makeImportUIPart(const QString &name, const QString &text);
+    void initBuilderImportUI();
+    void makeImportUIPart(const QString &name, const QString &text, int importIndex);
 
 };
 

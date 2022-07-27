@@ -5,18 +5,18 @@
 #include "classmethod.h"
 
 QT_BEGIN_NAMESPACE
-namespace Parser { class ProductMethods; }
+namespace Parser { class ClassMethods; }
 QT_END_NAMESPACE
 
 using ClassMethodTypePtr = ClassMethod<std::shared_ptr<Element>> *;
 
 class Element;
 
-class ProductMethods: public BaseElement
+class ClassMethods: public BaseElement
 {
 public:
-    ProductMethods(unsigned num = 0);
-    ~ProductMethods() override;
+    ClassMethods(unsigned num = 0);
+    ~ClassMethods() override;
 
     ClassMethodTypePtr &operator[](unsigned i);
 
