@@ -420,8 +420,10 @@ void MainWindow::writeUiToParsedAbstractFactory() {
     QVector<BaseElement **> elements;
     QStringList elementsName;
     QLineEdit *lineEditFactoryName = nullptr;
-    QSpinBox *spinBoxNumFactories = nullptr, *spinBoxNumProducts = nullptr;
-    QListWidget *listOfFactories = nullptr, *listOfProducts = nullptr;
+    QSpinBox *spinBoxNumFactories = nullptr;
+    QSpinBox *spinBoxNumProducts = nullptr;
+    QListWidget *listOfFactories = nullptr;
+    QListWidget *listOfProducts = nullptr;
     QHBoxLayout *layoutProductsMethodsList = nullptr;
     uiElements << reinterpret_cast<QObject **>(&lineEditFactoryName) << reinterpret_cast<QObject **>(&spinBoxNumFactories)
                << reinterpret_cast<QObject **>(&spinBoxNumProducts) << reinterpret_cast<QObject **>(&listOfFactories)
@@ -429,7 +431,9 @@ void MainWindow::writeUiToParsedAbstractFactory() {
     uiElementsName << "lineEditFactoryName" << "spinBoxNumFactories" << "spinBoxNumProducts" << "listOfFactories" << "listOfProducts"
                    << "layoutProductsMethodsList";
     Element *abstractFactoryName = nullptr;
-    VectorElement *factoriesNames = nullptr, *productsNames = nullptr, *productsMethods = nullptr;
+    VectorElement *factoriesNames = nullptr;
+    VectorElement *productsNames = nullptr;
+    VectorElement *productsMethods = nullptr;
     elements << reinterpret_cast<BaseElement **>(&abstractFactoryName) << reinterpret_cast<BaseElement **>(&factoriesNames)
              << reinterpret_cast<BaseElement **>(&productsNames) << reinterpret_cast<BaseElement **>(&productsMethods);
     elementsName << "abstractFactoryName" << "factoriesNames" << "productsNames" << "productsMethods";
@@ -468,7 +472,8 @@ void MainWindow::writeUiToParsedBuilder() {
     QLineEdit *lineEditAbstractBuilderName = nullptr;
     QSpinBox *spinBoxAbstractBuilderMethodsNum = nullptr;
     QSpinBox *spinBoxBuildersNum = nullptr;
-    QListWidget *listBuildersNames = nullptr, *listProductsNames = nullptr;
+    QListWidget *listBuildersNames = nullptr;
+    QListWidget *listProductsNames = nullptr;
     QTableWidget *directorMethods = nullptr;
     QTableWidget *abstractBuilderMethods = nullptr;
     QHBoxLayout *layoutProductsMethods = nullptr;
@@ -1456,8 +1461,10 @@ void MainWindow::writeParsedAbstractFactoryToUi() {
     QVector<BaseElement **> elements;
     QStringList elementsName;
     QLineEdit *lineEditFactoryName = nullptr;
-    QSpinBox *spinBoxNumFactories = nullptr, *spinBoxNumProducts = nullptr;
-    QListWidget *listOfFactories = nullptr, *listOfProducts = nullptr;
+    QSpinBox *spinBoxNumFactories = nullptr;
+    QSpinBox *spinBoxNumProducts = nullptr;
+    QListWidget *listOfFactories = nullptr;
+    QListWidget *listOfProducts = nullptr;
     QHBoxLayout *layoutProductsMethodsList = nullptr;
     uiElements << reinterpret_cast<QObject **>(&lineEditFactoryName) << reinterpret_cast<QObject **>(&spinBoxNumFactories)
                << reinterpret_cast<QObject **>(&spinBoxNumProducts) << reinterpret_cast<QObject **>(&listOfFactories)
@@ -1465,7 +1472,9 @@ void MainWindow::writeParsedAbstractFactoryToUi() {
     uiElementsName << "lineEditFactoryName" << "spinBoxNumFactories" << "spinBoxNumProducts" << "listOfFactories" << "listOfProducts"
                    << "layoutProductsMethodsList";
     Element *abstractFactoryName = nullptr;
-    VectorElement *factoriesNames = nullptr, *productsNames = nullptr, *productsMethods = nullptr;
+    VectorElement *factoriesNames = nullptr;
+    VectorElement *productsNames = nullptr;
+    VectorElement *productsMethods = nullptr;
     elements << reinterpret_cast<BaseElement **>(&abstractFactoryName) << reinterpret_cast<BaseElement **>(&factoriesNames)
              << reinterpret_cast<BaseElement **>(&productsNames) << reinterpret_cast<BaseElement **>(&productsMethods);
     elementsName << "abstractFactoryName" << "factoriesNames" << "productsNames" << "productsMethods";
@@ -1530,7 +1539,8 @@ void MainWindow::writeParsedBuilderToUi() {
     QLineEdit *lineEditAbstractBuilderName = nullptr;
     QSpinBox *spinBoxAbstractBuilderMethodsNum = nullptr;
     QSpinBox *spinBoxBuildersNum = nullptr;
-    QListWidget *listBuildersNames = nullptr, *listProductsNames = nullptr;
+    QListWidget *listBuildersNames = nullptr;
+    QListWidget *listProductsNames = nullptr;
     QTableWidget *directorMethods = nullptr;
     QTableWidget *abstractBuilderMethods = nullptr;
     QHBoxLayout *layoutProductsMethods = nullptr;

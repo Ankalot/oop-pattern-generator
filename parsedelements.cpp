@@ -64,7 +64,7 @@ void ParsedElements::parseSingleton() {
     const QString singletonTextCpp = singletonCpp->getText();
 
     QRegExp word("\\w+");
-    QRegExp classDef("class +\\w+ {0,}[{]");
+    QRegExp classDef("class +\\w+ *[{]");
     int classDefPos = classDef.indexIn(singletonTextH);
     if (classDefPos == -1) {
         qWarning() << "Can't find class in singleton .h file";
@@ -124,7 +124,7 @@ bool findSpecialCpp(ClassText **specialCpp, const QVector<ClassText *> &allHandC
 }
 
 bool findSpecialH(QVector<ClassText *> *specialH, const QVector<ClassText *> &allHandCpp, const QString &specialHFileName) {
-    (*specialH).clear();
+    specialH->clear();
     bool ok = false;
     QRegExp HFileNameOnlyRe("\\w+.h");
     if (HFileNameOnlyRe.indexIn(specialHFileName) == -1)
@@ -135,7 +135,7 @@ bool findSpecialH(QVector<ClassText *> *specialH, const QVector<ClassText *> &al
     for (int allHandCppIndex = 0; allHandCppIndex < allHandCppNum; ++allHandCppIndex) {
         if (allHandCpp[allHandCppIndex]->getFileType() == ".h")
             if (specialInclude.indexIn(allHandCpp[allHandCppIndex]->getText()) != -1) {
-                (*specialH).append(allHandCpp[allHandCppIndex]);
+                specialH->append(allHandCpp[allHandCppIndex]);
                 ok = true;
             }
     }
@@ -147,16 +147,16 @@ bool sortHandCppClassTexts(QVector<ClassText *> &classesHandCpp, QVector<ClassTe
     const int factoriesHandCppNum = classesHandCpp.count();
     for (int factoryHandCppIndex = 0; factoryHandCppIndex < factoriesHandCppNum; ++factoryHandCppIndex) {
         if (classesHandCpp[factoryHandCppIndex]->getFileType() == ".h")
-            (*classesH).append(classesHandCpp[factoryHandCppIndex]);
+            classesH->append(classesHandCpp[factoryHandCppIndex]);
     }
-    const int classesHNum = (*classesH).count();
+    const int classesHNum = classesH->count();
     ClassText *classCpp = nullptr;
     for (int classHIndex = 0; classHIndex < classesHNum; ++classHIndex) {
-        if (!findSpecialCpp(&classCpp, classesHandCpp, (*classesH)[classHIndex]->getFileName()))
+        if (!findSpecialCpp(&classCpp, classesHandCpp, classesH->at(classHIndex)->getFileName()))
             return false;
-        (*classesCpp).append(classCpp);
+        classesCpp->append(classCpp);
     }
-    if (classesHNum != (*classesCpp).count())
+    if (classesHNum != classesCpp->count())
         return false;
     return true;
 }
@@ -213,7 +213,7 @@ ElementPtr makeElementFromNameAndPos(const QString &name, const int pos, ClassTe
 }
 
 bool findClassBody(QString *classBody, int *classBodyPos, const QString &text) {
-    const QRegularExpression classDef("class +\\w+ {0,}[{](\\X+)[}][;]");
+    const QRegularExpression classDef("class +\\w+ *[{](\\X+)};");
     QRegularExpressionMatch classDefMatch = classDef.match(text);
     if (!classDefMatch.hasMatch())
         return false;
@@ -226,7 +226,7 @@ void findMethodArgs(ClassMethod<ElementPtr> *method, QRegularExpressionMatchIter
     while (i.hasNext()) {
         QRegularExpressionMatch match = i.next();
         int isConstPos = argsBodyPos + match.capturedStart("const");
-        if (match.captured("const") == "")
+        if (match.captured("const") == "" and isConstPos)
             --isConstPos; //actually "" does not have a symbol position, so this is a crutch
         ElementPtr isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, classH);
         ElementPtr typeElement = makeElementFromNameAndPos(match.captured("type"), argsBodyPos + match.capturedStart("type"), classH);
@@ -244,8 +244,8 @@ void findClassConstructor(ClassMethods **classMethodsElement, ClassText *classH,
         qWarning() << "Can't find class in" << classH->getFileName() << "file";
         return;
     }
-    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+)");
-    const QRegularExpression constructorDef(className + " *[(](?<args>.*)[)]");
+    const QRegularExpression argDef(R"( *(?<const>(const)?) *(?<type>(\w|:)+([*&]*)) +(?<name>\w+))");
+    const QRegularExpression constructorDef(className + R"( *\((?<args>.*?)\))");
     QRegularExpressionMatch constructorDefMatch = constructorDef.match(classBody);
     if (!constructorDefMatch.hasMatch()) {
         qWarning() << "Can't find constructor in class in" << classH->getFileName() << "file";
@@ -272,9 +272,9 @@ void findClassMethods(ClassMethods **classMethodsElement, ClassText *classH, boo
         qWarning() << "Can't find class in" << classH->getFileName() << "file";
         return;
     }
-    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+(([*]|[&])*)) +(?<name>\\w+)");
+    const QRegularExpression argDef(R"( *(?<const>(const)?) *(?<type>(\w|:)+([*&]*)) +(?<name>\w+))");
     QRegularExpression methodDef;
-    QString methodDefPattern = " *(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+) *[(](?<args>.*)[)]";
+    QString methodDefPattern = R"( *(?<const>(const|)) *(?<type>(\w|:)+) +(?<name>\w+) *\((?<args>.*?)\))";
     if (abstract)
         methodDefPattern = "virtual" + methodDefPattern;
     methodDef.setPattern(methodDefPattern);
@@ -284,7 +284,7 @@ void findClassMethods(ClassMethods **classMethodsElement, ClassText *classH, boo
         if (methodsBlackList.indexOf(match.captured("name")) != -1)
             continue;
         int isConstPos = classBodyPos + match.capturedStart("const");
-        if (match.captured("const") == "")
+        if (match.captured("const") == "" and isConstPos)
             --isConstPos; //actually "" does not have a symbol position, so this is a crutch
         ElementPtr isConstElement = makeElementFromNameAndPos(match.captured("const"), isConstPos, classH);
         ElementPtr typeElement = makeElementFromNameAndPos(match.captured("type"), classBodyPos +
@@ -356,7 +356,7 @@ bool addInfoAboutMethod(ClassMethods *prodMethodsElement, const QString &isConst
 }
 
 bool findChildClassBody(QString *classBody, int *classBodyPos, const QString &text) {
-    const QRegularExpression classDef("class +\\w+ *: (public|private|protected) +\\w+ {0,}[{](\\X+)[}][;]");
+    const QRegularExpression classDef("class +\\w+ *: *(public|private|protected) +\\w+ *[{](\\X+)};");
     QRegularExpressionMatch classDefMatch = classDef.match(text);
     if (!classDefMatch.hasMatch())
         return false;
@@ -367,8 +367,8 @@ bool findChildClassBody(QString *classBody, int *classBodyPos, const QString &te
 
 void addInfoAboutClassConstructor(ClassMethods **classMethodsElement, ClassText *classCpp, const QString &className) {
     const QString classCppText = classCpp->getText();
-    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+(([*]|[&])*)) +(?<name>\\w+)");
-    const QRegularExpression constructorDef(className + "::" + className + " *[(](?<args>.*)[)]");
+    const QRegularExpression argDef(R"( *(?<const>(const)?) *(?<type>(\w|:)+([*&]*)) +(?<name>\w+))");
+    const QRegularExpression constructorDef(className + "::" + className + R"( *\((?<args>.*?)\))");
     QRegularExpressionMatch match = constructorDef.match(classCppText);
     if (!match.hasMatch()) {
         qWarning() << "Can't find constructor in class in" << classCpp->getFileName() << "file";
@@ -384,7 +384,7 @@ void addInfoAboutClassConstructor(ClassMethods **classMethodsElement, ClassText 
         QRegularExpressionMatch match = j.next();
         argsConst.append(match.captured("const"));
         int isConstPos = argsBodyPos + match.capturedStart("const");
-        if (match.captured("const") == "")
+        if (match.captured("const") == "" and isConstPos)
             --isConstPos; //actually "" does not have a symbol position, so this is a crutch
         argsConstPos.append(isConstPos);
         argsType.append(match.captured("type"));
@@ -399,14 +399,14 @@ void addInfoAboutClassConstructor(ClassMethods **classMethodsElement, ClassText 
     }
 }
 
-void addInfoAboutClassMethods(ClassMethods **classMethodsElement, ClassText *classFile, bool child, const QStringList &methodsBlackList) {
+void addInfoAboutClassMethods(ClassMethods **classMethodsElement, ClassText *classFile, bool isChild, const QStringList &methodsBlackList) {
     const QString classText = classFile->getText();
     QString body;
     int bodyPos = 0;
     if (classFile->getFileType() == ".cpp")
         body = classText;
     else {
-        if (child) {
+        if (isChild) {
             if (!findChildClassBody(&body, &bodyPos, classText)) {
                 qWarning() << "Can't find child class in" << classFile->getFileName() << "file";
                 return;
@@ -419,12 +419,12 @@ void addInfoAboutClassMethods(ClassMethods **classMethodsElement, ClassText *cla
         }
     }
 
-    const QRegularExpression argDef(" *(?<const>(const|)) *(?<type>(\\w|[:])+(([*]|[&])*)) +(?<name>\\w+)");
+    const QRegularExpression argDef(R"( *(?<const>(const)?) *(?<type>(\w|:)+([*&]*)) +(?<name>\w+))");
     QRegularExpression methodDef;
     if (classFile->getFileType() == ".cpp")
-        methodDef.setPattern("(?<const>(const|)) *(?<type>(\\w|[:])+) +((\\w+)[:][:])(?<name>\\w+) *[(](?<args>.*)[)]");
+        methodDef.setPattern(R"((?<const>(const|)) *(?<type>(\w|:)+) +((\w+):{2})(?<name>\w+) *\((?<args>.*?)\))");
     else
-        methodDef.setPattern("(?<const>(const|)) *(?<type>(\\w|[:])+) +(?<name>\\w+) *[(](?<args>.*)[)]");
+        methodDef.setPattern(R"((?<const>(const|)) *(?<type>(\w|:)+) +(?<name>\w+) *\((?<args>.*?)\))");
     QRegularExpressionMatchIterator i = methodDef.globalMatch(body);
     while (i.hasNext()) {
         QRegularExpressionMatch match = i.next();
@@ -432,7 +432,7 @@ void addInfoAboutClassMethods(ClassMethods **classMethodsElement, ClassText *cla
             continue;
         const QString isConst = match.captured("const");
         int isConstPos = bodyPos + match.capturedStart("const");
-        if (match.captured("const") == "")
+        if (match.captured("const") == "" and isConstPos)
             --isConstPos; //actually "" does not have a symbol position, so this is a crutch
         const QString type = match.captured("type");
         const int typePos = bodyPos + match.capturedStart("type");
@@ -448,7 +448,7 @@ void addInfoAboutClassMethods(ClassMethods **classMethodsElement, ClassText *cla
             QRegularExpressionMatch match = j.next();
             argsConst.append(match.captured("const"));
             int isConstPos = argsBodyPos + match.capturedStart("const");
-            if (match.captured("const") == "")
+            if (match.captured("const") == "" and isConstPos)
                 --isConstPos; //actually "" does not have a symbol position, so this is a crutch
             argsConstPos.append(isConstPos);
             argsType.append(match.captured("type"));
@@ -475,7 +475,7 @@ void ParsedElements::parseAbstractFactory() {
     const QString abstractFactoryTextH = abstractFactoryH->getText();
 
     const QRegExp word("\\w+");
-    const QRegExp classDef("class +\\w+ {0,}[{]");
+    const QRegExp classDef("class +\\w+ *[{]");
     int classDefPos = classDef.indexIn(abstractFactoryTextH);
     if (classDefPos == -1) {
         qWarning() << "Can't find class in abstract factory .h file";
@@ -506,7 +506,7 @@ void ParsedElements::parseAbstractFactory() {
 
     // factoriesNamesElements
 
-    const QRegExp childClassDef("class +\\w+ {0,} {0,}[:] +\\w+ +" + abstractFactoryName + " {0,}[{]");
+    const QRegExp childClassDef("class +\\w+ *: *\\w+ +" + abstractFactoryName + " *[{]");
     VectorElement *factoriesNamesElements = new VectorElement(factoriesNum);
     for (int factoryIndex = 0; factoryIndex < factoriesNum; ++factoryIndex) {
         const QString factoryTextH = factoriesH[factoryIndex]->getText();
@@ -685,7 +685,7 @@ void ParsedElements::parseBuilder() {
 
     // directorName
 
-    const QRegularExpression classDef("class +(?<name>\\w+) *((: (public|private|protected) +\\w+ *)|)[{](\\X+)[}][;]");
+    const QRegularExpression classDef(R"(class +(?<name>\w+) *((: (public|private|protected) +\w+ *)?)[{](\X+)};)");
     QRegularExpressionMatch classDefMatchDirector = classDef.match(directorHText);
     if (!classDefMatchDirector.hasMatch()) {
         qWarning() << "Can't find class definition in" << directorH->getFileName();
