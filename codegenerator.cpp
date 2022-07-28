@@ -419,9 +419,7 @@ public:\n\
         %3 = new %4(); // %5\n\
     }\n\
     %4* getResult() {\n\
-        %4* product = %3;\n\
-        reset();\n\
-        return product;\n\
+        return %3;\n\
     }\n\n\
 %6\n\
 private:\n\
@@ -541,9 +539,7 @@ void %2::reset() {\n\
     %4 = new %5(); // %6\n\
 }\n\n\
 %5* %2::getResult() {\n\
-    %5* product = %4;\n\
-    reset();\n\
-    return product;\n\
+    return %4;\n\
 }\n\n\
 %7\n").arg(builderName.toLower()).arg(builderName).arg(abstractBuilderName).arg(productVarName)
                 .arg(productName).arg(productConstructorArgs).arg(builderMethodsTextCpp);
